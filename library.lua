@@ -46,10 +46,10 @@ Menu.TempPressedKey = nil
 Menu.ShowKeybinds = false
 Menu.CurrentTopTab = 1
 
--- Información del anticheat (puedes cambiarla aquí)
-Menu.AnticheatInfo = "🛡️ Anticheat: EasyAntiCheat (Server-side)"
+-- Información del anticheat (visible en el panel)
+Menu.AnticheatInfo = "🛡️ Anticheat: EasyAntiCheat (Server active)"
 
--- Paleta profesional (Glass / Neon)
+-- Paleta Glass / Neon unificada
 Menu.Colors = {
     GlassBg     = { r = 10, g = 15, b = 30, a = 200 },
     GlassBorder = { r = 0,  g = 210, b = 255, a = 150 },
@@ -119,7 +119,7 @@ function Menu.ApplyTheme(themeName)
     end
 end
 
--- Dimensiones originales exactas
+-- Dimensiones exactas del original + panel anticheat
 Menu.Position = {
     x = 20,
     y = 80,
@@ -135,8 +135,8 @@ Menu.Position = {
     scrollbarWidth = 6,
     scrollbarPadding = 4,
     headerRadius = 8,
-    anticheatHeight = 32,   -- altura del panel de anticheat
-    anticheatSpacing = 6    -- espacio antes del footer
+    anticheatHeight = 32,
+    anticheatSpacing = 6
 }
 Menu.Scale = 1.0
 
@@ -162,7 +162,7 @@ function Menu.GetScaledPosition()
     }
 end
 
--- Calcula la altura real del menú (incluyendo el panel anticheat)
+-- Calcula la altura real del menú (incluyendo panel anticheat)
 function Menu.GetActualHeight()
     local p = Menu.GetScaledPosition()
     local scale = Menu.Scale or 1.0
@@ -186,57 +186,12 @@ function Menu.GetActualHeight()
         local visibleCats = math.min(Menu.ItemsPerPage, totalCats)
         height = height + p.mainMenuHeight + p.mainMenuSpacing + (visibleCats * p.itemHeight)
     end
-    -- Añadir el panel de anticheat y su espaciado antes del footer
     height = height + p.anticheatSpacing + p.anticheatHeight
     height = height + p.footerSpacing + p.footerHeight
     return height
 end
 
--- Función para dibujar el panel de anticheat (estilo glass)
-function Menu.DrawAnticheatPanel()
-    local p = Menu.GetScaledPosition()
-    local x = p.x
-    local y
-    -- Calcular Y: debajo de las categorías/ítems
-    local scale = Menu.Scale or 1.0
-    local bannerH = Menu.Banner.enabled and (Menu.Banner.height * scale) or p.headerHeight
-    local contentStartY = p.y + bannerH
-    if Menu.OpenedCategory then
-        local cat = Menu.Categories[Menu.OpenedCategory]
-        if cat and cat.hasTabs and cat.tabs then
-            local tab = cat.tabs[Menu.CurrentTab]
-            if tab and tab.items then
-                local visible = math.min(Menu.ItemsPerPage, #tab.items)
-                y = contentStartY + p.mainMenuHeight + p.mainMenuSpacing + (visible * p.itemHeight) + p.anticheatSpacing
-            else
-                y = contentStartY + p.mainMenuHeight + p.mainMenuSpacing + p.anticheatSpacing
-            end
-        else
-            y = contentStartY + p.mainMenuHeight + p.mainMenuSpacing + p.anticheatSpacing
-        end
-    else
-        local totalCats = #Menu.Categories - 1
-        local visibleCats = math.min(Menu.ItemsPerPage, totalCats)
-        y = contentStartY + p.mainMenuHeight + p.mainMenuSpacing + (visibleCats * p.itemHeight) + p.anticheatSpacing
-    end
-
-    local w = p.width - 1
-    local h = p.anticheatHeight
-    -- Fondo glass
-    Menu.DrawRoundedRect(x, y, w, h, Menu.Colors.GlassBg.r, Menu.Colors.GlassBg.g, Menu.Colors.GlassBg.b, Menu.Colors.GlassBg.a-30, 4)
-    -- Borde neón inferior y superior sutiles
-    Menu.DrawRect(x, y, w, 1, Menu.Colors.GlassBorder.r/255.0, Menu.Colors.GlassBorder.g/255.0, Menu.Colors.GlassBorder.b/255.0, 100)
-    Menu.DrawRect(x, y+h-1, w, 1, Menu.Colors.GlassBorder.r/255.0, Menu.Colors.GlassBorder.g/255.0, Menu.Colors.GlassBorder.b/255.0, 100)
-    -- Texto informativo
-    local text = Menu.AnticheatInfo
-    local fontSize = 12
-    local tw = Susano.GetTextWidth and Susano.GetTextWidth(text, fontSize) or (string.len(text)*6)
-    local tx = x + w/2 - tw/2
-    local ty = y + h/2 - fontSize/2
-    Menu.DrawText(tx, ty, text, fontSize, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 200)
-end
-
--- Funciones de dibujo (las mismas que tenías, completas)
+-- Funciones de dibujo base
 function Menu.DrawRect(x, y, w, h, r, g, b, a)
     a = a or 1.0
     if r > 1.0 then r = r/255.0 end
@@ -282,6 +237,7 @@ function Menu.DrawRoundedRect(x, y, w, h, r, g, b, a, radius)
     end
 end
 
+-- Header
 function Menu.DrawHeader()
     local p = Menu.GetScaledPosition()
     local x, y, w = p.x, p.y, p.width-1
@@ -299,6 +255,7 @@ function Menu.DrawHeader()
     end
 end
 
+-- Scrollbar (igual)
 function Menu.DrawScrollbar(x, startY, visibleHeight, selectedIndex, totalItems, isMainMenu, menuWidth)
     if totalItems < 1 then return end
     local p = Menu.GetScaledPosition()
@@ -324,6 +281,7 @@ function Menu.DrawScrollbar(x, startY, visibleHeight, selectedIndex, totalItems,
     Menu.DrawRoundedRect(sbX, thumbY, sbW, thumbH, acR, acG, acB, 220, sbW/2)
 end
 
+-- Pestañas (submenús)
 function Menu.DrawTabs(category, x, startY, width, tabHeight)
     if not category or not category.hasTabs or not category.tabs then return end
     local scale = Menu.Scale or 1.0
@@ -372,7 +330,8 @@ local function findNextNonSeparator(items, startIndex, direction)
     return startIndex
 end
 
-function Menu.DrawItem(x, itemY, width, itemHeight, item, isSelected)
+-- Dibujo de ítem (submenús y categorías principal)
+function Menu.DrawItem(x, itemY, width, itemHeight, item, isSelected, isCategory)
     local scale = Menu.Scale or 1.0
     if item.isSeparator then
         Menu.DrawRect(x, itemY, width, itemHeight, Menu.Colors.GlassBg.r, Menu.Colors.GlassBg.g, Menu.Colors.GlassBg.b, 60)
@@ -393,11 +352,21 @@ function Menu.DrawItem(x, itemY, width, itemHeight, item, isSelected)
     Menu.DrawRect(x, itemY, width, itemHeight, Menu.Colors.GlassBg.r, Menu.Colors.GlassBg.g, Menu.Colors.GlassBg.b, 80)
 
     if isSelected then
-        if Menu.SelectorY == 0 then Menu.SelectorY = itemY end
+        if not isCategory and Menu.SelectorY == 0 then Menu.SelectorY = itemY end
+        if isCategory and Menu.CategorySelectorY == 0 then Menu.CategorySelectorY = itemY end
+        
+        local drawY = isCategory and Menu.CategorySelectorY or Menu.SelectorY
+        local targetY = itemY
         local smooth = Menu.SmoothFactor
-        Menu.SelectorY = Menu.SelectorY + (itemY - Menu.SelectorY) * smooth
-        if math.abs(Menu.SelectorY - itemY) < 0.5 then Menu.SelectorY = itemY end
-        local drawY = Menu.SelectorY
+        if isCategory then
+            Menu.CategorySelectorY = drawY + (targetY - drawY) * smooth
+            if math.abs(Menu.CategorySelectorY - targetY) < 0.5 then Menu.CategorySelectorY = targetY end
+            drawY = Menu.CategorySelectorY
+        else
+            Menu.SelectorY = drawY + (targetY - drawY) * smooth
+            if math.abs(Menu.SelectorY - targetY) < 0.5 then Menu.SelectorY = targetY end
+            drawY = Menu.SelectorY
+        end
 
         local steps = 30
         local stepH = itemHeight / steps
@@ -422,80 +391,134 @@ function Menu.DrawItem(x, itemY, width, itemHeight, item, isSelected)
     local textX = x + 22
     local textY = itemY + itemHeight/2 - 8
     Menu.DrawText(textX, textY, item.name, 17, Menu.Colors.Text.r/255.0, Menu.Colors.Text.g/255.0, Menu.Colors.Text.b/255.0, 255)
+    
+    -- Para categorías, mostramos "›" al final
+    if isCategory then
+        Menu.DrawText(x+width-32, textY, "›", 18, Menu.Colors.TextDim.r/255.0, Menu.Colors.TextDim.g/255.0, Menu.Colors.TextDim.b/255.0, 200)
+    end
 
-    if item.type == "toggle" then
-        local toggleW = 44 * scale
-        local toggleH = 22 * scale
-        local toggleX = x + width - toggleW - 18
-        local toggleY = itemY + (itemHeight/2) - toggleH/2
-        local rad = toggleH/2
-        if item.value then
-            Menu.DrawRoundedRect(toggleX, toggleY, toggleW, toggleH, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255, rad)
-        else
-            Menu.DrawRoundedRect(toggleX, toggleY, toggleW, toggleH, 50,60,90, 200, rad)
-        end
-        local knobSize = toggleH - 6
-        local knobY = toggleY + 3
-        local knobX = item.value and (toggleX + toggleW - knobSize - 3) or (toggleX + 3)
-        Menu.DrawRoundedRect(knobX, knobY, knobSize, knobSize, 255,255,255, 255, knobSize/2)
-    elseif item.type == "slider" then
-        local sliderW = 120 * scale
-        local sliderH = 6 * scale
-        local sliderX = x + width - sliderW - 70
-        local sliderY = itemY + (itemHeight/2) - sliderH/2
-        local minV = item.min or 0
-        local maxV = item.max or 100
-        local val = item.value or minV
-        local percent = (val - minV) / (maxV - minV)
-        percent = math.min(1, math.max(0, percent))
-        Menu.DrawRect(sliderX, sliderY, sliderW, sliderH, 40,50,80, 180)
-        if percent > 0 then
-            Menu.DrawRect(sliderX, sliderY, sliderW * percent, sliderH, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255)
-        end
-        local thumbSize = 11 * scale
-        local thumbX = sliderX + sliderW*percent - thumbSize/2
-        local thumbY = sliderY + sliderH/2 - thumbSize/2
-        Menu.DrawRoundedRect(thumbX, thumbY, thumbSize, thumbSize, 255,255,255, 255, thumbSize/2)
-        local valText = string.format("%.0f", val)
-        local tw = Susano.GetTextWidth and Susano.GetTextWidth(valText, 12) or (string.len(valText)*6)
-        Menu.DrawText(sliderX+sliderW+10, sliderY-2, valText, 12, Menu.Colors.Text.r/255.0, Menu.Colors.Text.g/255.0, Menu.Colors.Text.b/255.0, 200)
-    elseif item.type == "selector" and item.options then
-        local selIdx = item.selected or 1
-        local opt = item.options[selIdx] or ""
-        local full = "< " .. opt .. " >"
-        local fs = 16
-        local tw = Susano.GetTextWidth and Susano.GetTextWidth(full, fs) or (string.len(full)*8)
-        local tx = x + width - tw - 22
-        Menu.DrawText(tx, textY, full, fs, Menu.Colors.TextDim.r/255.0, Menu.Colors.TextDim.g/255.0, Menu.Colors.TextDim.b/255.0, 255)
-    elseif item.type == "toggle_selector" then
-        local toggleW = 40 * scale
-        local toggleH = 20 * scale
-        local toggleX = x + width - toggleW - 18
-        local toggleY = itemY + (itemHeight/2) - toggleH/2
-        local rad = toggleH/2
-        if item.value then
-            Menu.DrawRoundedRect(toggleX, toggleY, toggleW, toggleH, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255, rad)
-        else
-            Menu.DrawRoundedRect(toggleX, toggleY, toggleW, toggleH, 50,60,90, 200, rad)
-        end
-        local knobSize = toggleH - 4
-        local knobY = toggleY + 2
-        local knobX = item.value and (toggleX + toggleW - knobSize - 2) or (toggleX + 2)
-        Menu.DrawRoundedRect(knobX, knobY, knobSize, knobSize, 255,255,255, 255, knobSize/2)
-        if item.options then
+    -- Controles (solo para ítems de submenú, no para categorías)
+    if not isCategory then
+        if item.type == "toggle" then
+            local toggleW = 44 * scale
+            local toggleH = 22 * scale
+            local toggleX = x + width - toggleW - 18
+            local toggleY = itemY + (itemHeight/2) - toggleH/2
+            local rad = toggleH/2
+            if item.value then
+                Menu.DrawRoundedRect(toggleX, toggleY, toggleW, toggleH, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255, rad)
+            else
+                Menu.DrawRoundedRect(toggleX, toggleY, toggleW, toggleH, 50,60,90, 200, rad)
+            end
+            local knobSize = toggleH - 6
+            local knobY = toggleY + 3
+            local knobX = item.value and (toggleX + toggleW - knobSize - 3) or (toggleX + 3)
+            Menu.DrawRoundedRect(knobX, knobY, knobSize, knobSize, 255,255,255, 255, knobSize/2)
+        elseif item.type == "slider" then
+            local sliderW = 120 * scale
+            local sliderH = 6 * scale
+            local sliderX = x + width - sliderW - 70
+            local sliderY = itemY + (itemHeight/2) - sliderH/2
+            local minV = item.min or 0
+            local maxV = item.max or 100
+            local val = item.value or minV
+            local percent = (val - minV) / (maxV - minV)
+            percent = math.min(1, math.max(0, percent))
+            Menu.DrawRect(sliderX, sliderY, sliderW, sliderH, 40,50,80, 180)
+            if percent > 0 then
+                Menu.DrawRect(sliderX, sliderY, sliderW * percent, sliderH, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255)
+            end
+            local thumbSize = 11 * scale
+            local thumbX = sliderX + sliderW*percent - thumbSize/2
+            local thumbY = sliderY + sliderH/2 - thumbSize/2
+            Menu.DrawRoundedRect(thumbX, thumbY, thumbSize, thumbSize, 255,255,255, 255, thumbSize/2)
+            local valText = string.format("%.0f", val)
+            local tw = Susano.GetTextWidth and Susano.GetTextWidth(valText, 12) or (string.len(valText)*6)
+            Menu.DrawText(sliderX+sliderW+10, sliderY-2, valText, 12, Menu.Colors.Text.r/255.0, Menu.Colors.Text.g/255.0, Menu.Colors.Text.b/255.0, 200)
+        elseif item.type == "selector" and item.options then
             local selIdx = item.selected or 1
             local opt = item.options[selIdx] or ""
-            local optText = "< " .. opt .. " >"
-            local fs = 14
-            local tw = Susano.GetTextWidth and Susano.GetTextWidth(optText, fs) or (string.len(optText)*7)
-            local tx = toggleX - tw - 12
-            Menu.DrawText(tx, textY, optText, fs, Menu.Colors.TextDim.r/255.0, Menu.Colors.TextDim.g/255.0, Menu.Colors.TextDim.b/255.0, 255)
+            local full = "< " .. opt .. " >"
+            local fs = 16
+            local tw = Susano.GetTextWidth and Susano.GetTextWidth(full, fs) or (string.len(full)*8)
+            local tx = x + width - tw - 22
+            Menu.DrawText(tx, textY, full, fs, Menu.Colors.TextDim.r/255.0, Menu.Colors.TextDim.g/255.0, Menu.Colors.TextDim.b/255.0, 255)
+        elseif item.type == "toggle_selector" then
+            local toggleW = 40 * scale
+            local toggleH = 20 * scale
+            local toggleX = x + width - toggleW - 18
+            local toggleY = itemY + (itemHeight/2) - toggleH/2
+            local rad = toggleH/2
+            if item.value then
+                Menu.DrawRoundedRect(toggleX, toggleY, toggleW, toggleH, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255, rad)
+            else
+                Menu.DrawRoundedRect(toggleX, toggleY, toggleW, toggleH, 50,60,90, 200, rad)
+            end
+            local knobSize = toggleH - 4
+            local knobY = toggleY + 2
+            local knobX = item.value and (toggleX + toggleW - knobSize - 2) or (toggleX + 2)
+            Menu.DrawRoundedRect(knobX, knobY, knobSize, knobSize, 255,255,255, 255, knobSize/2)
+            if item.options then
+                local selIdx = item.selected or 1
+                local opt = item.options[selIdx] or ""
+                local optText = "< " .. opt .. " >"
+                local fs = 14
+                local tw = Susano.GetTextWidth and Susano.GetTextWidth(optText, fs) or (string.len(optText)*7)
+                local tx = toggleX - tw - 12
+                Menu.DrawText(tx, textY, optText, fs, Menu.Colors.TextDim.r/255.0, Menu.Colors.TextDim.g/255.0, Menu.Colors.TextDim.b/255.0, 255)
+            end
         end
     end
 end
 
+-- Panel anticheat (visible)
+function Menu.DrawAnticheatPanel()
+    local p = Menu.GetScaledPosition()
+    local x = p.x
+    local y
+    -- Calcular Y: debajo de las categorías/ítems y antes del footer
+    local scale = Menu.Scale or 1.0
+    local bannerH = Menu.Banner.enabled and (Menu.Banner.height * scale) or p.headerHeight
+    local contentStartY = p.y + bannerH
+    if Menu.OpenedCategory then
+        local cat = Menu.Categories[Menu.OpenedCategory]
+        if cat and cat.hasTabs and cat.tabs then
+            local tab = cat.tabs[Menu.CurrentTab]
+            if tab and tab.items then
+                local visible = math.min(Menu.ItemsPerPage, #tab.items)
+                y = contentStartY + p.mainMenuHeight + p.mainMenuSpacing + (visible * p.itemHeight) + p.anticheatSpacing
+            else
+                y = contentStartY + p.mainMenuHeight + p.mainMenuSpacing + p.anticheatSpacing
+            end
+        else
+            y = contentStartY + p.mainMenuHeight + p.mainMenuSpacing + p.anticheatSpacing
+        end
+    else
+        local totalCats = #Menu.Categories - 1
+        local visibleCats = math.min(Menu.ItemsPerPage, totalCats)
+        y = contentStartY + p.mainMenuHeight + p.mainMenuSpacing + (visibleCats * p.itemHeight) + p.anticheatSpacing
+    end
+
+    local w = p.width - 1
+    local h = p.anticheatHeight
+    -- Fondo glass
+    Menu.DrawRoundedRect(x, y, w, h, Menu.Colors.GlassBg.r, Menu.Colors.GlassBg.g, Menu.Colors.GlassBg.b, Menu.Colors.GlassBg.a-30, 4)
+    -- Bordes neón
+    Menu.DrawRect(x, y, w, 1, Menu.Colors.GlassBorder.r/255.0, Menu.Colors.GlassBorder.g/255.0, Menu.Colors.GlassBorder.b/255.0, 100)
+    Menu.DrawRect(x, y+h-1, w, 1, Menu.Colors.GlassBorder.r/255.0, Menu.Colors.GlassBorder.g/255.0, Menu.Colors.GlassBorder.b/255.0, 100)
+    -- Texto informativo
+    local text = Menu.AnticheatInfo
+    local fontSize = 12
+    local tw = Susano.GetTextWidth and Susano.GetTextWidth(text, fontSize) or (string.len(text)*6)
+    local tx = x + w/2 - tw/2
+    local ty = y + h/2 - fontSize/2
+    Menu.DrawText(tx, ty, text, fontSize, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 200)
+end
+
+-- Dibujo del menú principal y submenús
 function Menu.DrawCategories()
     if Menu.OpenedCategory then
+        -- Submenú (con pestañas)
         local cat = Menu.Categories[Menu.OpenedCategory]
         if not cat or not cat.hasTabs or not cat.tabs then
             Menu.OpenedCategory = nil
@@ -529,7 +552,7 @@ function Menu.DrawCategories()
                     visible = visible + 1
                     local yPos = itemsY + (i-1)*itemH
                     local isSel = (idx == Menu.CurrentItem)
-                    Menu.DrawItem(x, yPos, w, itemH, curTab.items[idx], isSel)
+                    Menu.DrawItem(x, yPos, w, itemH, curTab.items[idx], isSel, false)
                 end
             end
             local nonSep = 0
@@ -541,6 +564,7 @@ function Menu.DrawCategories()
         return
     end
 
+    -- Menú principal (categorías)
     local p = Menu.GetScaledPosition()
     local scale = Menu.Scale or 1.0
     local x = p.x
@@ -551,6 +575,7 @@ function Menu.DrawCategories()
     local tabH = p.mainMenuHeight
     local spacing = p.mainMenuSpacing
 
+    -- TopLevelTabs (si existen) con el mismo estilo que las pestañas de submenú
     if Menu.TopLevelTabs then
         local tabCount = #Menu.TopLevelTabs
         local tabW = w / tabCount
@@ -583,6 +608,7 @@ function Menu.DrawCategories()
         end
         startY = startY + tabH + spacing
     else
+        -- Cabecera "Menú principal" con estilo glass (igual que pestaña seleccionada)
         Menu.DrawRect(x, startY, w, tabH, Menu.Colors.GlassBg.r, Menu.Colors.GlassBg.g, Menu.Colors.GlassBg.b, 0)
         local steps = 12
         local stepH = tabH / steps
@@ -605,6 +631,7 @@ function Menu.DrawCategories()
         startY = startY + tabH + spacing
     end
 
+    -- Lista de categorías (con el mismo estilo que los ítems de submenú)
     local totalCats = #Menu.Categories - 1
     local maxVis = Menu.ItemsPerPage
     if Menu.CurrentCategory > Menu.CategoryScrollOffset + maxVis + 1 then
@@ -621,15 +648,10 @@ function Menu.DrawCategories()
             local cat = Menu.Categories[idx]
             local yPos = startY + (i-1)*itemH
             local isSel = (idx == Menu.CurrentCategory)
-            Menu.DrawRect(x, yPos, w, itemH, Menu.Colors.GlassBg.r, Menu.Colors.GlassBg.g, Menu.Colors.GlassBg.b, isSel and 120 or 70)
-            if isSel then
-                Menu.DrawRect(x, yPos, 4, itemH, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255)
-                Menu.DrawRect(x, yPos, w, 2, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 180)
-            end
-            local tx = x + 22
-            local ty = yPos + itemH/2 - 8
-            Menu.DrawText(tx, ty, cat.name, 17, Menu.Colors.Text.r/255.0, Menu.Colors.Text.g/255.0, Menu.Colors.Text.b/255.0, 255)
-            Menu.DrawText(x+w-32, ty, "›", 18, Menu.Colors.TextDim.r/255.0, Menu.Colors.TextDim.g/255.0, Menu.Colors.TextDim.b/255.0, 200)
+            -- Dibujar categoría como un ítem del menú principal (con el mismo DrawItem pero marcando isCategory=true)
+            -- Reutilizamos la función DrawItem con un "item" simulado
+            local fakeItem = { name = cat.name, isSeparator = false }
+            Menu.DrawItem(x, yPos, w, itemH, fakeItem, isSel, true)
         end
     end
 
@@ -661,7 +683,7 @@ function Menu.DrawFooter()
         local vis = math.min(Menu.ItemsPerPage, #Menu.Categories-1)
         totalH = totalH + p.mainMenuHeight + p.mainMenuSpacing + (vis * p.itemHeight)
     end
-    -- Añadir el espacio del panel anticheat y su altura
+    -- Añadir el panel anticheat
     totalH = totalH + p.anticheatSpacing + p.anticheatHeight
     local footerY = p.y + totalH + p.footerSpacing
     local w = p.width - 1
@@ -690,7 +712,7 @@ function Menu.DrawFooter()
     end
 end
 
--- Barra de progreso profesional
+-- Barra de progreso
 function Menu.DrawLoadingBar(alpha)
     if alpha <= 0 then return end
     local sw, sh = 1920, 1080
@@ -715,7 +737,7 @@ function Menu.DrawLoadingBar(alpha)
     Menu.DrawText(x+w/2-stw/2, y-42, status, 14, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255*alpha)
 end
 
--- KeySelector con visualización en vivo
+-- KeySelector
 function Menu.DrawKeySelector(alpha)
     if alpha <= 0 then return end
     local sw, sh = 1920, 1080
@@ -776,7 +798,7 @@ function Menu.DrawKeybindsInterface(alpha)
     end
 end
 
--- Partículas de nieve
+-- Partículas
 Menu.Particles = {}
 for i=1, 100 do
     table.insert(Menu.Particles, {
@@ -808,7 +830,7 @@ function Menu.DrawBackground()
     end
 end
 
--- ========== MANEJO DE ENTRADA (con teclas especiales) ==========
+-- ========== MANEJO DE ENTRADA ==========
 Menu.KeyStates = {}
 function Menu.IsKeyJustPressed(keyCode)
     if not Susano.GetAsyncKeyState then return false end
@@ -969,7 +991,7 @@ function Menu.HandleInput()
         return
     end
 
-    -- Navegación normal
+    -- Navegación normal (sin cambios)
     if Menu.OpenedCategory then
         local cat = Menu.Categories[Menu.OpenedCategory]
         if not cat or not cat.hasTabs or not cat.tabs then
@@ -1133,7 +1155,6 @@ function Menu.HandleInput()
     end
 end
 
--- Funciones auxiliares
 function Menu.UpdateCategoriesFromTopTab()
     if not Menu.TopLevelTabs then return end
     local currentTop = Menu.TopLevelTabs[Menu.CurrentTopTab]
@@ -1207,7 +1228,7 @@ function Menu.Render()
         Menu.DrawBackground()
         Menu.DrawHeader()
         Menu.DrawCategories()
-        Menu.DrawAnticheatPanel()   -- <-- NUEVO: panel anticheat
+        Menu.DrawAnticheatPanel()
         Menu.DrawFooter()
     end
     if Menu.InputOpen then Menu.DrawInputWindow() end
@@ -1303,7 +1324,7 @@ end)
 if Menu.Banner.enabled and Menu.Banner.imageUrl then Menu.LoadBannerTexture(Menu.Banner.imageUrl) end
 Menu.ApplyTheme("Glass")
 
--- Forzar fondo negro desactivado y nieve activada, además de establecer el texto del anticheat
+-- Configurar valores por defecto (fondo negro desactivado, nieve activada, anticheat visible)
 CreateThread(function()
     while not Menu.Categories do Wait(100) end
     Wait(500)
@@ -1324,8 +1345,6 @@ CreateThread(function()
             end
         end
     end
-    -- Puedes personalizar el texto del anticheat aquí o desde fuera
-    Menu.AnticheatInfo = "🛡️ Anticheat: EasyAntiCheat (Server active)"
 end)
 
 return Menu
