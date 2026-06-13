@@ -46,57 +46,22 @@ Menu.TempPressedKey = nil
 Menu.ShowKeybinds = false
 Menu.CurrentTopTab = 1
 
--- ========== PANEL DE ANTICHEAT ==========
-Menu.AnticheatList = {
-    { name = "ElectronAC", detected = false },
-    { name = "WaveShield", detected = false },
-    { name = "FiveGuard", detected = false },
-    { name = "Likizao", detected = false },
-    { name = "Reaper", detected = false },
-    { name = "XeroShield", detected = false },
-    { name = "Ocean Anti-Cheat", detected = false },
-    { name = "Armour AC", detected = false },
-    { name = "Fire AC", detected = false },
-    { name = "ZeroTrust", detected = false },
-}
+-- ========== PANEL DE ANTICHEAT (REAL, SIN SIMULACIÓN) ==========
+Menu.AnticheatList = {}   -- Lista de anticheats detectados (se llena desde fuera)
 Menu.AnticheatScanning = false
-Menu.AnticheatScanProgress = 0
-Menu.AnticheatCurrentIndex = 1
 Menu.AnticheatPanelAlpha = 0.0
 
--- Simula la detección de anticheats (puedes modificar la lógica aquí)
-function Menu.AnticheatScan()
-    if Menu.AnticheatScanning then return end
-    Menu.AnticheatScanning = true
-    Menu.AnticheatScanProgress = 0
-    Menu.AnticheatCurrentIndex = 1
-    -- Reiniciar estados
-    for i=1, #Menu.AnticheatList do
-        Menu.AnticheatList[i].detected = false
+-- Función pública para actualizar la lista de anticheats detectados
+-- Ejemplo de uso: Menu.SetAnticheatInfo({"ElectronAC", "FiveGuard"})
+function Menu.SetAnticheatInfo(detectedList)
+    if not detectedList or type(detectedList) ~= "table" then
+        Menu.AnticheatList = {}
+        return
     end
-    CreateThread(function()
-        while Menu.AnticheatScanning and Menu.AnticheatCurrentIndex <= #Menu.AnticheatList do
-            local idx = Menu.AnticheatCurrentIndex
-            -- Simulación: puedes cambiar esta lógica. Aquí, algunos se detectan aleatoriamente o por nombre
-            -- Por ejemplo, detectamos FiveGuard y ZeroTrust siempre, y aleatorio para otros
-            if Menu.AnticheatList[idx].name == "FiveGuard" then
-                Menu.AnticheatList[idx].detected = true
-            elseif Menu.AnticheatList[idx].name == "ZeroTrust" then
-                Menu.AnticheatList[idx].detected = true
-            elseif Menu.AnticheatList[idx].name == "Reaper" then
-                Menu.AnticheatList[idx].detected = math.random() > 0.5
-            elseif Menu.AnticheatList[idx].name == "ElectronAC" then
-                Menu.AnticheatList[idx].detected = math.random() > 0.3
-            else
-                Menu.AnticheatList[idx].detected = math.random() > 0.7
-            end
-            Menu.AnticheatScanProgress = (idx / #Menu.AnticheatList) * 100
-            Menu.AnticheatCurrentIndex = idx + 1
-            Wait(math.random(300, 800)) -- simula tiempo de escaneo
-        end
-        Menu.AnticheatScanning = false
-        Menu.AnticheatScanProgress = 100
-    end)
+    Menu.AnticheatList = {}
+    for _, name in ipairs(detectedList) do
+        table.insert(Menu.AnticheatList, { name = name, detected = true })
+    end
 end
 
 -- ========== PALETA GLASS ==========
@@ -169,7 +134,7 @@ function Menu.ApplyTheme(themeName)
     end
 end
 
--- Dimensiones (incluyendo panel anticheat)
+-- Dimensiones
 Menu.Position = {
     x = 20,
     y = 80,
@@ -185,7 +150,7 @@ Menu.Position = {
     scrollbarWidth = 6,
     scrollbarPadding = 4,
     headerRadius = 8,
-    anticheatPanelHeight = 200,  -- alto del panel de detección (lista)
+    anticheatPanelHeight = 0,  -- se ajusta dinámicamente según el contenido
     anticheatSpacing = 8
 }
 Menu.Scale = 1.0
@@ -212,7 +177,7 @@ function Menu.GetScaledPosition()
     }
 end
 
--- Calcula la altura real del menú (incluyendo panel anticheat)
+-- Calcula la altura real (incluye panel anticheat solo si hay datos)
 function Menu.GetActualHeight()
     local p = Menu.GetScaledPosition()
     local scale = Menu.Scale or 1.0
@@ -237,11 +202,14 @@ function Menu.GetActualHeight()
         height = height + p.mainMenuHeight + p.mainMenuSpacing + (visibleCats * p.itemHeight)
     end
     height = height + p.footerSpacing + p.footerHeight
-    height = height + p.anticheatSpacing + p.anticheatPanelHeight
+    -- Añadir panel anticheat solo si hay datos
+    if #Menu.AnticheatList > 0 then
+        height = height + p.anticheatSpacing + p.anticheatPanelHeight
+    end
     return height
 end
 
--- Funciones de dibujo base
+-- Funciones de dibujo base (sin cambios)
 function Menu.DrawRect(x, y, w, h, r, g, b, a)
     a = a or 1.0
     if r > 1.0 then r = r/255.0 end
@@ -519,8 +487,10 @@ function Menu.DrawItem(x, itemY, width, itemHeight, item, isSelected, isCategory
     end
 end
 
--- PANEL DE DETECCIÓN DE ANTICHEATS (debajo del footer)
+-- PANEL DE ANTICHEAT (solo se dibuja si hay datos)
 function Menu.DrawAnticheatPanel()
+    if #Menu.AnticheatList == 0 then return end
+
     local p = Menu.GetScaledPosition()
     local x = p.x
     -- Calcular Y: después del footer
@@ -548,66 +518,43 @@ function Menu.DrawAnticheatPanel()
     local footerY = p.y + contentHeight + p.footerSpacing
     local y = footerY + p.footerHeight + p.anticheatSpacing
     local w = p.width - 1
-    local h = p.anticheatPanelHeight
+    -- Altura dinámica según número de anticheats (máximo 10, pero se ajusta)
+    local perColumn = math.ceil(#Menu.AnticheatList / 2)
+    local rows = math.min(perColumn, 5) -- limitamos a 5 filas para no desbordar
+    local h = 40 + rows * 22
+    p.anticheatPanelHeight = h
+    Menu.Position.anticheatPanelHeight = h / (Menu.Scale or 1.0)  -- guardamos para el cálculo de altura
 
     -- Fondo glass
     Menu.DrawRoundedRect(x, y, w, h, Menu.Colors.GlassBg.r, Menu.Colors.GlassBg.g, Menu.Colors.GlassBg.b, Menu.Colors.GlassBg.a-20, 6)
     Menu.DrawRect(x, y, w, 1, Menu.Colors.GlassBorder.r/255.0, Menu.Colors.GlassBorder.g/255.0, Menu.Colors.GlassBorder.b/255.0, 120)
     -- Título
-    local title = "🔍 ESCANEO DE ANTICHEATS"
-    local fsTitle = 13
-    local twTitle = Susano.GetTextWidth and Susano.GetTextWidth(title, fsTitle) or (string.len(title)*7)
-    Menu.DrawText(x + w/2 - twTitle/2, y + 12, title, fsTitle, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255)
-
-    -- Barra de progreso del escaneo
-    local barW = w - 20
-    local barH = 4
-    local barX = x + 10
-    local barY = y + 30
-    Menu.DrawRect(barX, barY, barW, barH, 40,50,80, 180)
-    if Menu.AnticheatScanProgress > 0 then
-        local progressW = barW * (Menu.AnticheatScanProgress / 100)
-        Menu.DrawRect(barX, barY, progressW, barH, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255)
-    end
+    local title = "🛡️ ANTICHEATS DETECTADOS"
+    local fsTitle = 12
+    local twTitle = Susano.GetTextWidth and Susano.GetTextWidth(title, fsTitle) or (string.len(title)*6)
+    Menu.DrawText(x + w/2 - twTitle/2, y + 10, title, fsTitle, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255)
 
     -- Lista de anticheats (dos columnas)
-    local itemHeight = 22
-    local startListY = y + 42
+    local startListY = y + 28
     local colWidth = (w - 30) / 2
-    local perColumn = math.ceil(#Menu.AnticheatList / 2)
+    local perCol = math.ceil(#Menu.AnticheatList / 2)
     for i, ac in ipairs(Menu.AnticheatList) do
         local col = 0
         local row = i - 1
-        if i > perColumn then
+        if i > perCol then
             col = 1
-            row = i - perColumn - 1
+            row = i - perCol - 1
         end
         local itemX = x + 15 + col * (colWidth + 5)
-        local itemY = startListY + row * itemHeight
-        local statusText = ac.detected and "✓ DETECTADO" or "✗ NO DETECTADO"
-        local statusColor = ac.detected and {r=100, g=255, b=100} or {r=255, g=100, b=100}
+        local itemY = startListY + row * 20
         -- Nombre
         Menu.DrawText(itemX, itemY, ac.name, 11, Menu.Colors.Text.r/255.0, Menu.Colors.Text.g/255.0, Menu.Colors.Text.b/255.0, 255)
-        -- Estado
-        local statusX = itemX + 140
-        Menu.DrawText(statusX, itemY, statusText, 11, statusColor.r/255.0, statusColor.g/255.0, statusColor.b/255.0, 220)
-    end
-
-    -- Mensaje de escaneo en curso o finalizado
-    if Menu.AnticheatScanning then
-        local msg = "ESCANEANDO... (" .. math.floor(Menu.AnticheatScanProgress) .. "%)"
-        local twMsg = Susano.GetTextWidth and Susano.GetTextWidth(msg, 10) or (string.len(msg)*5)
-        Menu.DrawText(x + w/2 - twMsg/2, y + h - 18, msg, 10, Menu.Colors.TextDim.r/255.0, Menu.Colors.TextDim.g/255.0, Menu.Colors.TextDim.b/255.0, 200)
-    else
-        if Menu.AnticheatScanProgress >= 100 then
-            local msg = "ESCANEO COMPLETADO"
-            local twMsg = Susano.GetTextWidth and Susano.GetTextWidth(msg, 10) or (string.len(msg)*5)
-            Menu.DrawText(x + w/2 - twMsg/2, y + h - 18, msg, 10, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 200)
-        end
+        -- Indicador de detectado (siempre true, porque solo mostramos los detectados)
+        Menu.DrawText(itemX + 140, itemY, "✓", 11, 100,255,100, 255)
     end
 end
 
--- Menú principal y submenús
+-- Menú principal y submenús (igual que antes, pero con el panel)
 function Menu.DrawCategories()
     if Menu.OpenedCategory then
         local cat = Menu.Categories[Menu.OpenedCategory]
@@ -1314,7 +1261,7 @@ function Menu.Render()
         Menu.DrawHeader()
         Menu.DrawCategories()
         Menu.DrawFooter()
-        Menu.DrawAnticheatPanel()
+        Menu.DrawAnticheatPanel()   -- solo se dibuja si hay datos
     end
     if Menu.InputOpen then Menu.DrawInputWindow() end
     if Menu.LoadingBarAlpha > 0 then Menu.DrawLoadingBar(Menu.LoadingBarAlpha) end
@@ -1392,8 +1339,6 @@ CreateThread(function()
             Menu.IsLoading = false
             Menu.LoadingComplete = true
             Menu.SelectingKey = true
-            -- Iniciar escaneo de anticheat al terminar la carga
-            Menu.AnticheatScan()
             break
         end
         Wait(0)
@@ -1411,7 +1356,7 @@ end)
 if Menu.Banner.enabled and Menu.Banner.imageUrl then Menu.LoadBannerTexture(Menu.Banner.imageUrl) end
 Menu.ApplyTheme("Glass")
 
--- Configurar valores por defecto
+-- Configurar valores por defecto (fondo negro desactivado, nieve activada)
 CreateThread(function()
     while not Menu.Categories do Wait(100) end
     Wait(500)
