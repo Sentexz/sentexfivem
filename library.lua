@@ -47,12 +47,10 @@ Menu.ShowKeybinds = false
 Menu.CurrentTopTab = 1
 
 -- ========== PANEL DE ANTICHEAT (REAL, SIN SIMULACIÓN) ==========
-Menu.AnticheatList = {}   -- Lista de anticheats detectados (se llena desde fuera)
+Menu.AnticheatList = {}
 Menu.AnticheatScanning = false
 Menu.AnticheatPanelAlpha = 0.0
 
--- Función pública para actualizar la lista de anticheats detectados
--- Ejemplo de uso: Menu.SetAnticheatInfo({"ElectronAC", "FiveGuard"})
 function Menu.SetAnticheatInfo(detectedList)
     if not detectedList or type(detectedList) ~= "table" then
         Menu.AnticheatList = {}
@@ -150,7 +148,7 @@ Menu.Position = {
     scrollbarWidth = 6,
     scrollbarPadding = 4,
     headerRadius = 8,
-    anticheatPanelHeight = 0,  -- se ajusta dinámicamente según el contenido
+    anticheatPanelHeight = 0,
     anticheatSpacing = 8
 }
 Menu.Scale = 1.0
@@ -202,14 +200,13 @@ function Menu.GetActualHeight()
         height = height + p.mainMenuHeight + p.mainMenuSpacing + (visibleCats * p.itemHeight)
     end
     height = height + p.footerSpacing + p.footerHeight
-    -- Añadir panel anticheat solo si hay datos
     if #Menu.AnticheatList > 0 then
         height = height + p.anticheatSpacing + p.anticheatPanelHeight
     end
     return height
 end
 
--- Funciones de dibujo base (sin cambios)
+-- Funciones de dibujo base
 function Menu.DrawRect(x, y, w, h, r, g, b, a)
     a = a or 1.0
     if r > 1.0 then r = r/255.0 end
@@ -299,7 +296,7 @@ function Menu.DrawScrollbar(x, startY, visibleHeight, selectedIndex, totalItems,
     Menu.DrawRoundedRect(sbX, thumbY, sbW, thumbH, acR, acG, acB, 220, sbW/2)
 end
 
--- Pestañas (submenús)
+-- Pestañas
 function Menu.DrawTabs(category, x, startY, width, tabHeight)
     if not category or not category.hasTabs or not category.tabs then return end
     local scale = Menu.Scale or 1.0
@@ -348,7 +345,7 @@ local function findNextNonSeparator(items, startIndex, direction)
     return startIndex
 end
 
--- Dibujo de ítem (submenús y categorías)
+-- Dibujo de ítem (con toggle suave)
 function Menu.DrawItem(x, itemY, width, itemHeight, item, isSelected, isCategory)
     local scale = Menu.Scale or 1.0
     if item.isSeparator then
@@ -416,20 +413,38 @@ function Menu.DrawItem(x, itemY, width, itemHeight, item, isSelected, isCategory
 
     if not isCategory then
         if item.type == "toggle" then
+            -- Animación suave del toggle
+            if item.animProgress == nil then item.animProgress = item.value and 1 or 0 end
+            if item.animTarget == nil then item.animTarget = item.value and 1 or 0 end
+            -- Actualizar progreso hacia el objetivo
+            local diff = item.animTarget - item.animProgress
+            if math.abs(diff) > 0.01 then
+                item.animProgress = item.animProgress + diff * Menu.SmoothFactor
+            else
+                item.animProgress = item.animTarget
+            end
+            
             local toggleW = 44 * scale
             local toggleH = 22 * scale
             local toggleX = x + width - toggleW - 18
             local toggleY = itemY + (itemHeight/2) - toggleH/2
             local rad = toggleH/2
-            if item.value then
-                Menu.DrawRoundedRect(toggleX, toggleY, toggleW, toggleH, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255, rad)
-            else
-                Menu.DrawRoundedRect(toggleX, toggleY, toggleW, toggleH, 50,60,90, 200, rad)
-            end
+            -- Color interpolado entre OFF (50,60,90) y ON (accent)
+            local rOff, gOff, bOff = 50/255.0, 60/255.0, 90/255.0
+            local rOn, gOn, bOn = Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0
+            local r = rOff + (rOn - rOff) * item.animProgress
+            local g = gOff + (gOn - gOff) * item.animProgress
+            local b = bOff + (bOn - bOff) * item.animProgress
+            Menu.DrawRoundedRect(toggleX, toggleY, toggleW, toggleH, r, g, b, 255, rad)
+            
             local knobSize = toggleH - 6
             local knobY = toggleY + 3
-            local knobX = item.value and (toggleX + toggleW - knobSize - 3) or (toggleX + 3)
+            -- Posición del knob: OFF en toggleX+3, ON en toggleX+toggleW - knobSize - 3
+            local offX = toggleX + 3
+            local onX = toggleX + toggleW - knobSize - 3
+            local knobX = offX + (onX - offX) * item.animProgress
             Menu.DrawRoundedRect(knobX, knobY, knobSize, knobSize, 255,255,255, 255, knobSize/2)
+            
         elseif item.type == "slider" then
             local sliderW = 120 * scale
             local sliderH = 6 * scale
@@ -518,23 +533,20 @@ function Menu.DrawAnticheatPanel()
     local footerY = p.y + contentHeight + p.footerSpacing
     local y = footerY + p.footerHeight + p.anticheatSpacing
     local w = p.width - 1
-    -- Altura dinámica según número de anticheats (máximo 10, pero se ajusta)
+    -- Altura dinámica según número de anticheats
     local perColumn = math.ceil(#Menu.AnticheatList / 2)
-    local rows = math.min(perColumn, 5) -- limitamos a 5 filas para no desbordar
+    local rows = math.min(perColumn, 5)
     local h = 40 + rows * 22
     p.anticheatPanelHeight = h
-    Menu.Position.anticheatPanelHeight = h / (Menu.Scale or 1.0)  -- guardamos para el cálculo de altura
+    Menu.Position.anticheatPanelHeight = h / (Menu.Scale or 1.0)
 
-    -- Fondo glass
     Menu.DrawRoundedRect(x, y, w, h, Menu.Colors.GlassBg.r, Menu.Colors.GlassBg.g, Menu.Colors.GlassBg.b, Menu.Colors.GlassBg.a-20, 6)
     Menu.DrawRect(x, y, w, 1, Menu.Colors.GlassBorder.r/255.0, Menu.Colors.GlassBorder.g/255.0, Menu.Colors.GlassBorder.b/255.0, 120)
-    -- Título
     local title = "🛡️ ANTICHEATS DETECTADOS"
     local fsTitle = 12
     local twTitle = Susano.GetTextWidth and Susano.GetTextWidth(title, fsTitle) or (string.len(title)*6)
     Menu.DrawText(x + w/2 - twTitle/2, y + 10, title, fsTitle, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255)
 
-    -- Lista de anticheats (dos columnas)
     local startListY = y + 28
     local colWidth = (w - 30) / 2
     local perCol = math.ceil(#Menu.AnticheatList / 2)
@@ -547,14 +559,12 @@ function Menu.DrawAnticheatPanel()
         end
         local itemX = x + 15 + col * (colWidth + 5)
         local itemY = startListY + row * 20
-        -- Nombre
         Menu.DrawText(itemX, itemY, ac.name, 11, Menu.Colors.Text.r/255.0, Menu.Colors.Text.g/255.0, Menu.Colors.Text.b/255.0, 255)
-        -- Indicador de detectado (siempre true, porque solo mostramos los detectados)
         Menu.DrawText(itemX + 140, itemY, "✓", 11, 100,255,100, 255)
     end
 end
 
--- Menú principal y submenús (igual que antes, pero con el panel)
+-- Menú principal y submenús
 function Menu.DrawCategories()
     if Menu.OpenedCategory then
         local cat = Menu.Categories[Menu.OpenedCategory]
@@ -768,7 +778,7 @@ function Menu.DrawLoadingBar(alpha)
     Menu.DrawText(x+w/2-stw/2, y-42, status, 14, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255*alpha)
 end
 
--- KeySelector (visualización en vivo)
+-- KeySelector
 function Menu.DrawKeySelector(alpha)
     if alpha <= 0 then return end
     local sw, sh = 1920, 1080
@@ -793,7 +803,7 @@ function Menu.DrawKeySelector(alpha)
     Menu.DrawText(boxX+boxW/2-kw/2, boxY+boxH/2-10, displayKey, 20, 255,240,100, 255*alpha)
 end
 
--- Panel de teclas rápidas (lateral derecho)
+-- Panel de teclas rápidas
 function Menu.DrawKeybindsInterface(alpha)
     if alpha <= 0 then return end
     local binds = {}
@@ -862,7 +872,7 @@ function Menu.DrawBackground()
     end
 end
 
--- ========== MANEJO DE ENTRADA (con teclas especiales) ==========
+-- ========== MANEJO DE ENTRADA ==========
 Menu.KeyStates = {}
 function Menu.IsKeyJustPressed(keyCode)
     if not Susano.GetAsyncKeyState then return false end
@@ -958,6 +968,7 @@ function Menu.HandleInput()
                             if Menu.IsKeyJustPressed(it.bindKey) then
                                 if it.type=="toggle" then
                                     it.value = not it.value
+                                    it.animTarget = it.value and 1 or 0
                                     if it.name == "Modo editor" then Menu.EditorMode = it.value end
                                     if it.name == "Mostrar teclas rápidas" then Menu.ShowKeybinds = it.value end
                                     if it.name == "Copos de nieve" then Menu.ShowSnowflakes = it.value end
@@ -1023,7 +1034,7 @@ function Menu.HandleInput()
         return
     end
 
-    -- Navegación normal
+    -- Navegación normal (vertical + horizontal con Q/E)
     if Menu.OpenedCategory then
         local cat = Menu.Categories[Menu.OpenedCategory]
         if not cat or not cat.hasTabs or not cat.tabs then
@@ -1100,6 +1111,7 @@ function Menu.HandleInput()
                 if item and not item.isSeparator then
                     if item.type == "toggle" or item.type == "toggle_selector" then
                         item.value = not item.value
+                        item.animTarget = item.value and 1 or 0
                         if item.name == "Mostrar teclas rápidas" then Menu.ShowKeybinds = item.value end
                         if item.name == "Modo editor" then Menu.EditorMode = item.value end
                         if item.name == "Copos de nieve" then Menu.ShowSnowflakes = item.value end
@@ -1123,7 +1135,8 @@ function Menu.HandleInput()
                     Menu.TempPressedKey = item.bindKeyName or "..."
                 end
             end
-            if Menu.IsKeyJustPressed(0x51) then
+            -- Navegación horizontal con Q/E para cambiar pestañas
+            if Menu.IsKeyJustPressed(0x51) then  -- Q
                 if Menu.CurrentTab > 1 then
                     Menu.CurrentTab = Menu.CurrentTab - 1
                     local newTab = cat.tabs[Menu.CurrentTab]
@@ -1137,7 +1150,7 @@ function Menu.HandleInput()
                     if Menu.CurrentTopTab < 1 then Menu.CurrentTopTab = #Menu.TopLevelTabs end
                     Menu.UpdateCategoriesFromTopTab()
                 end
-            elseif Menu.IsKeyJustPressed(0x45) then
+            elseif Menu.IsKeyJustPressed(0x45) then  -- E
                 if Menu.CurrentTab < #cat.tabs then
                     Menu.CurrentTab = Menu.CurrentTab + 1
                     local newTab = cat.tabs[Menu.CurrentTab]
@@ -1261,7 +1274,7 @@ function Menu.Render()
         Menu.DrawHeader()
         Menu.DrawCategories()
         Menu.DrawFooter()
-        Menu.DrawAnticheatPanel()   -- solo se dibuja si hay datos
+        Menu.DrawAnticheatPanel()
     end
     if Menu.InputOpen then Menu.DrawInputWindow() end
     if Menu.LoadingBarAlpha > 0 then Menu.DrawLoadingBar(Menu.LoadingBarAlpha) end
