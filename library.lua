@@ -19,7 +19,7 @@ Menu.SelectorY = 0
 Menu.CategorySelectorY = 0
 Menu.TabSelectorX = 0
 Menu.TabSelectorWidth = 0
-Menu.SmoothFactor = 0.2
+Menu.SmoothFactor = 0.15
 Menu.GradientType = 1
 Menu.ScrollbarPosition = 1
 
@@ -41,105 +41,104 @@ Menu.SelectingBind = false
 Menu.BindingItem = nil
 Menu.BindingKey = nil
 Menu.BindingKeyName = nil
-Menu.TempBindKey = nil        -- para mostrar la tecla presionada sin confirmar
-Menu.TempBindKeyName = nil
+Menu.TempPressedKey = nil   -- para mostrar tecla en selector antes de Enter
 
 Menu.ShowKeybinds = false
 Menu.CurrentTopTab = 1
 
--- ========== PALETA NEO-GLASS (Azul/Cian neón, cristal) ==========
+-- ========== PALETA GLASS / NEÓN ==========
 Menu.Colors = {
-    GlassBg     = { r = 10, g = 18, b = 32, a = 210 },  -- fondo principal
-    GlassCard   = { r = 16, g = 24, b = 40, a = 230 },  -- tarjetas de ítems
-    Accent      = { r = 0,  g = 210, b = 255 },         -- cian neón
-    AccentDark  = { r = 0,  g = 140, b = 200 },
-    TextBright  = { r = 255, g = 255, b = 255 },
-    TextDim     = { r = 170, g = 190, b = 220 },
-    BorderGlow  = { r = 0,  g = 210, b = 255, a = 100 }
+    GlassBg     = { r = 10, g = 15, b = 30, a = 200 },   -- fondo cristal
+    GlassBorder = { r = 0,  g = 210, b = 255, a = 150 }, -- borde cian
+    Accent      = { r = 0,  g = 180, b = 255 },          -- acento principal
+    AccentDark  = { r = 0,  g = 120, b = 200 },
+    Text        = { r = 255, g = 255, b = 255 },
+    TextDim     = { r = 160, g = 170, b = 210 },
+    Selected    = { r = 0,  g = 150, b = 230 },          -- color de selección
 }
-Menu.CurrentTheme = "NeoGlass"
+Menu.CurrentTheme = "Glass"
 
 function Menu.ApplyTheme(themeName)
-    if not themeName or type(themeName) ~= "string" then themeName = "NeoGlass" end
-    local themeLower = string.lower(themeName)
+    if not themeName then themeName = "Glass" end
+    local low = string.lower(themeName)
     Menu.CurrentTheme = themeName
-
-    if themeLower == "neoglass" then
-        Menu.Colors.GlassBg = { r = 10, g = 18, b = 32, a = 210 }
-        Menu.Colors.GlassCard = { r = 16, g = 24, b = 40, a = 230 }
-        Menu.Colors.Accent = { r = 0, g = 210, b = 255 }
-        Menu.Colors.AccentDark = { r = 0, g = 140, b = 200 }
-        Menu.Colors.TextBright = { r = 255, g = 255, b = 255 }
-        Menu.Colors.TextDim = { r = 170, g = 190, b = 220 }
-        Menu.Banner.imageUrl = "https://i.imgur.com/RjJe1zr.jpeg"
-    elseif themeLower == "red" then
-        Menu.Colors.GlassBg = { r = 25, g = 12, b = 16, a = 210 }
-        Menu.Colors.GlassCard = { r = 35, g = 18, b = 24, a = 230 }
+    if low == "glass" or low == "blue" then
+        Menu.Colors.GlassBg = { r = 10, g = 15, b = 30, a = 200 }
+        Menu.Colors.GlassBorder = { r = 0, g = 210, b = 255, a = 150 }
+        Menu.Colors.Accent = { r = 0, g = 180, b = 255 }
+        Menu.Colors.AccentDark = { r = 0, g = 120, b = 200 }
+        Menu.Colors.Text = { r = 255, g = 255, b = 255 }
+        Menu.Colors.TextDim = { r = 160, g = 170, b = 210 }
+        Menu.Colors.Selected = { r = 0, g = 150, b = 230 }
+        Menu.Banner.imageUrl = "https://i.imgur.com/dWBrem7.jpeg"
+    elseif low == "red" then
+        Menu.Colors.GlassBg = { r = 25, g = 10, b = 10, a = 200 }
+        Menu.Colors.GlassBorder = { r = 255, g = 60, b = 60, a = 150 }
         Menu.Colors.Accent = { r = 255, g = 60, b = 60 }
         Menu.Colors.AccentDark = { r = 200, g = 30, b = 30 }
-        Menu.Colors.TextBright = { r = 255, g = 255, b = 255 }
-        Menu.Colors.TextDim = { r = 220, g = 170, b = 170 }
-        Menu.Banner.imageUrl = "https://i.imgur.com/RjJe1zr.jpeg"
-    elseif themeLower == "purple" then
-        Menu.Colors.GlassBg = { r = 20, g = 12, b = 35, a = 210 }
-        Menu.Colors.GlassCard = { r = 28, g = 18, b = 45, a = 230 }
-        Menu.Colors.Accent = { r = 180, g = 80, b = 255 }
-        Menu.Colors.AccentDark = { r = 130, g = 40, b = 200 }
-        Menu.Colors.TextBright = { r = 255, g = 255, b = 255 }
-        Menu.Colors.TextDim = { r = 200, g = 170, b = 240 }
-        Menu.Banner.imageUrl = "https://i.imgur.com/RjJe1zr.jpeg"
-    elseif themeLower == "gray" then
-        Menu.Colors.GlassBg = { r = 25, g = 28, b = 35, a = 210 }
-        Menu.Colors.GlassCard = { r = 35, g = 38, b = 45, a = 230 }
-        Menu.Colors.Accent = { r = 180, g = 190, b = 210 }
-        Menu.Colors.AccentDark = { r = 130, g = 140, b = 160 }
-        Menu.Colors.TextBright = { r = 240, g = 245, b = 255 }
-        Menu.Colors.TextDim = { r = 190, g = 200, b = 220 }
-        Menu.Banner.imageUrl = "https://i.imgur.com/RjJe1zr.jpeg"
-    elseif themeLower == "pink" then
-        Menu.Colors.GlassBg = { r = 30, g = 12, b = 25, a = 210 }
-        Menu.Colors.GlassCard = { r = 40, g = 18, b = 35, a = 230 }
-        Menu.Colors.Accent = { r = 255, g = 50, b = 170 }
+        Menu.Colors.Text = { r = 255, g = 255, b = 255 }
+        Menu.Colors.TextDim = { r = 210, g = 160, b = 160 }
+        Menu.Colors.Selected = { r = 220, g = 40, b = 40 }
+        Menu.Banner.imageUrl = "https://i.imgur.com/dWBrem7.jpeg"
+    elseif low == "purple" then
+        Menu.Colors.GlassBg = { r = 18, g = 10, b = 28, a = 200 }
+        Menu.Colors.GlassBorder = { r = 170, g = 90, b = 255, a = 150 }
+        Menu.Colors.Accent = { r = 170, g = 90, b = 255 }
+        Menu.Colors.AccentDark = { r = 120, g = 50, b = 200 }
+        Menu.Colors.Text = { r = 255, g = 255, b = 255 }
+        Menu.Colors.TextDim = { r = 200, g = 180, b = 240 }
+        Menu.Colors.Selected = { r = 140, g = 70, b = 220 }
+        Menu.Banner.imageUrl = "https://i.imgur.com/dWBrem7.jpeg"
+    elseif low == "gray" then
+        Menu.Colors.GlassBg = { r = 28, g = 28, b = 35, a = 200 }
+        Menu.Colors.GlassBorder = { r = 160, g = 160, b = 180, a = 150 }
+        Menu.Colors.Accent = { r = 180, g = 180, b = 200 }
+        Menu.Colors.AccentDark = { r = 120, g = 120, b = 140 }
+        Menu.Colors.Text = { r = 240, g = 240, b = 250 }
+        Menu.Colors.TextDim = { r = 180, g = 180, b = 200 }
+        Menu.Colors.Selected = { r = 100, g = 100, b = 120 }
+        Menu.Banner.imageUrl = "https://i.imgur.com/WBxgLw9.png"
+    elseif low == "pink" then
+        Menu.Colors.GlassBg = { r = 25, g = 10, b = 20, a = 200 }
+        Menu.Colors.GlassBorder = { r = 255, g = 40, b = 160, a = 150 }
+        Menu.Colors.Accent = { r = 255, g = 40, b = 160 }
         Menu.Colors.AccentDark = { r = 200, g = 20, b = 120 }
-        Menu.Colors.TextBright = { r = 255, g = 240, b = 250 }
-        Menu.Colors.TextDim = { r = 230, g = 180, b = 210 }
-        Menu.Banner.imageUrl = "https://i.imgur.com/RjJe1zr.jpeg"
+        Menu.Colors.Text = { r = 255, g = 240, b = 250 }
+        Menu.Colors.TextDim = { r = 220, g = 170, b = 200 }
+        Menu.Colors.Selected = { r = 220, g = 30, b = 140 }
+        Menu.Banner.imageUrl = "https://i.imgur.com/dWBrem7.jpeg"
     else
-        Menu.ApplyTheme("NeoGlass")
+        Menu.ApplyTheme("Glass")
         return
     end
-
     if Menu.Banner.enabled and Menu.Banner.imageUrl then
         Menu.LoadBannerTexture(Menu.Banner.imageUrl)
     end
 end
 
--- Dimensiones ajustadas (más compactas, igual que el original pero con menos altura)
+-- Dimensiones exactas del original (limpias)
 Menu.Position = {
-    x = 0,   -- se calculará a la derecha
-    y = 90,
-    width = 380,
-    itemHeight = 36,
-    mainMenuHeight = 30,
-    headerHeight = 95,
-    footerHeight = 28,
+    x = 20,
+    y = 80,
+    width = 360,
+    itemHeight = 34,
+    mainMenuHeight = 26,
+    headerHeight = 100,
+    footerHeight = 26,
     footerSpacing = 5,
     mainMenuSpacing = 5,
     footerRadius = 6,
     itemRadius = 6,
-    scrollbarWidth = 8,
-    scrollbarPadding = 5,
+    scrollbarWidth = 6,
+    scrollbarPadding = 4,
     headerRadius = 8
 }
 Menu.Scale = 1.0
 
 function Menu.GetScaledPosition()
     local scale = Menu.Scale or 1.0
-    local screenW = 1920
-    if Susano and Susano.GetScreenWidth then screenW = Susano.GetScreenWidth() end
-    local x = screenW - (Menu.Position.width * scale) - 20
     return {
-        x = x,
+        x = Menu.Position.x,
         y = Menu.Position.y,
         width = Menu.Position.width * scale,
         itemHeight = Menu.Position.itemHeight * scale,
@@ -156,6 +155,7 @@ function Menu.GetScaledPosition()
     }
 end
 
+-- Funciones de dibujo optimizadas
 function Menu.DrawRect(x, y, w, h, r, g, b, a)
     a = a or 1.0
     if r > 1.0 then r = r/255.0 end
@@ -201,7 +201,7 @@ function Menu.DrawRoundedRect(x, y, w, h, r, g, b, a, radius)
     end
 end
 
--- Header con efecto cristal
+-- Header con efecto glass y gradiente
 function Menu.DrawHeader()
     local p = Menu.GetScaledPosition()
     local x, y, w = p.x, p.y, p.width-1
@@ -212,16 +212,17 @@ function Menu.DrawHeader()
     else
         -- Fondo glass
         Menu.DrawRoundedRect(x, y, w, h, Menu.Colors.GlassBg.r, Menu.Colors.GlassBg.g, Menu.Colors.GlassBg.b, Menu.Colors.GlassBg.a, p.headerRadius)
-        -- Borde neón inferior
-        Menu.DrawRect(x, y+h-2, w, 2, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 200)
-        local logo = "NEO MENU"
-        local fs = 26
-        local tw = Susano.GetTextWidth and Susano.GetTextWidth(logo, fs) or (string.len(logo)*13)
-        Menu.DrawText(x+w/2-tw/2, y+h/2-fs/2, logo, fs, Menu.Colors.TextBright.r/255.0, Menu.Colors.TextBright.g/255.0, Menu.Colors.TextBright.b/255.0, 255)
+        -- Borde inferior neón
+        Menu.DrawRect(x, y+h-2, w, 2, Menu.Colors.GlassBorder.r/255.0, Menu.Colors.GlassBorder.g/255.0, Menu.Colors.GlassBorder.b/255.0, Menu.Colors.GlassBorder.a/255.0)
+        -- Logo
+        local logo = "⚡ PHAZE ⚡"
+        local fs = 28
+        local tw = Susano.GetTextWidth and Susano.GetTextWidth(logo, fs) or (string.len(logo)*14)
+        Menu.DrawText(x+w/2-tw/2, y+h/2-fs/2, logo, fs, Menu.Colors.Text.r/255.0, Menu.Colors.Text.g/255.0, Menu.Colors.Text.b/255.0, 1.0)
     end
 end
 
--- Scrollbar elegante
+-- Scrollbar minimalista
 function Menu.DrawScrollbar(x, startY, visibleHeight, selectedIndex, totalItems, isMainMenu, menuWidth)
     if totalItems < 1 then return end
     local p = Menu.GetScaledPosition()
@@ -243,14 +244,13 @@ function Menu.DrawScrollbar(x, startY, visibleHeight, selectedIndex, totalItems,
         thumbY = math.max(sbY, math.min(sbY+sbH-thumbH, thumbY))
     end
     -- Track
-    Menu.DrawRoundedRect(sbX, sbY, sbW, sbH, 20,30,50, 100, sbW/2)
-    -- Thumb con brillo
+    Menu.DrawRect(sbX, sbY, sbW, sbH, 40,50,80, 80)
+    -- Thumb
     local acR, acG, acB = Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0
-    Menu.DrawRoundedRect(sbX, thumbY, sbW, thumbH, acR, acG, acB, 255, sbW/2)
-    Menu.DrawRect(sbX-1, thumbY, sbW+2, thumbH, acR, acG, acB, 40)
+    Menu.DrawRoundedRect(sbX, thumbY, sbW, thumbH, acR, acG, acB, 220, sbW/2)
 end
 
--- Pestañas con estilo neón
+-- Pestañas modernas
 function Menu.DrawTabs(category, x, startY, width, tabHeight)
     if not category or not category.hasTabs or not category.tabs then return end
     local scale = Menu.Scale or 1.0
@@ -260,33 +260,31 @@ function Menu.DrawTabs(category, x, startY, width, tabHeight)
         local tabX = x + (i-1)*tabWidth
         local curW = (i==numTabs) and (x+width - tabX) or (tabWidth + 0.5*scale)
         local isSel = (i == Menu.CurrentTab)
-        -- Fondo glass
-        Menu.DrawRect(tabX, startY, curW, tabHeight, Menu.Colors.GlassBg.r, Menu.Colors.GlassBg.g, Menu.Colors.GlassBg.b, isSel and 180 or 100)
+        Menu.DrawRect(tabX, startY, curW, tabHeight, Menu.Colors.GlassBg.r, Menu.Colors.GlassBg.g, Menu.Colors.GlassBg.b, isSel and 0 or 100)
         if isSel then
             -- Gradiente de selección
             local steps = 12
             local stepH = tabHeight / steps
-            local acR, acG, acB = Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0
             for s=0, steps-1 do
                 local sY = startY + s*stepH
                 local sH = math.min(stepH, startY+tabHeight - sY)
                 if sH > 0 then
                     local mix = 1 - (s / steps)
-                    local r = acR * (0.5 + mix*0.5)
-                    local g = acG * (0.5 + mix*0.5)
-                    local b = acB * (0.5 + mix*0.5)
-                    Menu.DrawRect(tabX, sY, curW, sH, r, g, b, 220)
+                    local r = Menu.Colors.Selected.r/255.0 * (0.3 + mix*0.7)
+                    local g = Menu.Colors.Selected.g/255.0 * (0.3 + mix*0.7)
+                    local b = Menu.Colors.Selected.b/255.0 * (0.3 + mix*0.7)
+                    Menu.DrawRect(tabX, sY, curW, sH, r, g, b, 230)
                 end
             end
-            -- Línea inferior neón
-            Menu.DrawRect(tabX, startY+tabHeight-2, curW, 2, acR, acG, acB, 255)
+            -- Línea inferior brillante
+            Menu.DrawRect(tabX, startY+tabHeight-2, curW, 2, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255)
         end
-        local fontSize = 14
-        local tw = Susano.GetTextWidth and Susano.GetTextWidth(tab.name, fontSize) or (string.len(tab.name)*7)
+        local fontSize = 15
+        local tw = Susano.GetTextWidth and Susano.GetTextWidth(tab.name, fontSize) or (string.len(tab.name)*8)
         local tx = tabX + curW/2 - tw/2
         local ty = startY + tabHeight/2 - fontSize/2
-        local r,g,b = isSel and 255 or Menu.Colors.TextBright.r, isSel and 255 or Menu.Colors.TextBright.g, isSel and 255 or Menu.Colors.TextBright.b
-        Menu.DrawText(tx, ty, tab.name, fontSize, r/255.0, g/255.0, b/255.0, 255)
+        local r,g,b = isSel and 255 or Menu.Colors.Text.r, isSel and 255 or Menu.Colors.Text.g, isSel and 255 or Menu.Colors.Text.b
+        Menu.DrawText(tx, ty, tab.name, fontSize, r/255.0, g/255.0, b/255.0, 1.0)
     end
 end
 
@@ -303,28 +301,27 @@ local function findNextNonSeparator(items, startIndex, direction)
     return startIndex
 end
 
--- Dibujo de ítem con cambio de color MUY notorio al seleccionar
+-- Ítem con selección muy visible (borde neón completo y glow)
 function Menu.DrawItem(x, itemY, width, itemHeight, item, isSelected)
     local scale = Menu.Scale or 1.0
     if item.isSeparator then
         Menu.DrawRect(x, itemY, width, itemHeight, Menu.Colors.GlassBg.r, Menu.Colors.GlassBg.g, Menu.Colors.GlassBg.b, 60)
         if item.separatorText then
-            local fs = 12
-            local tw = Susano.GetTextWidth and Susano.GetTextWidth(item.separatorText, fs) or (string.len(item.separatorText)*6)
+            local fs = 13
+            local tw = Susano.GetTextWidth and Susano.GetTextWidth(item.separatorText, fs) or (string.len(item.separatorText)*7)
             local tx = x + width/2 - tw/2
             local ty = itemY + itemHeight/2 - fs/2
-            Menu.DrawText(tx, ty, item.separatorText, fs, Menu.Colors.TextDim.r/255.0, Menu.Colors.TextDim.g/255.0, Menu.Colors.TextDim.b/255.0, 180)
-            -- Líneas decorativas
+            Menu.DrawText(tx, ty, item.separatorText, fs, Menu.Colors.TextDim.r/255.0, Menu.Colors.TextDim.g/255.0, Menu.Colors.TextDim.b/255.0, 200)
             local barY = itemY + itemHeight/2
-            local barL = 45
-            Menu.DrawRect(x+18, barY, barL, 1, 100,120,160, 100)
-            Menu.DrawRect(x+width-18-barL, barY, barL, 1, 100,120,160, 100)
+            local barL = 50
+            Menu.DrawRect(x+20, barY, barL, 1, 150,150,200, 100)
+            Menu.DrawRect(x+width-20-barL, barY, barL, 1, 150,150,200, 100)
         end
         return
     end
 
-    -- Fondo base
-    Menu.DrawRect(x, itemY, width, itemHeight, Menu.Colors.GlassCard.r, Menu.Colors.GlassCard.g, Menu.Colors.GlassCard.b, Menu.Colors.GlassCard.a)
+    -- Fondo del ítem (semi-transparente)
+    Menu.DrawRect(x, itemY, width, itemHeight, Menu.Colors.GlassBg.r, Menu.Colors.GlassBg.g, Menu.Colors.GlassBg.b, 80)
 
     if isSelected then
         if Menu.SelectorY == 0 then Menu.SelectorY = itemY end
@@ -333,36 +330,34 @@ function Menu.DrawItem(x, itemY, width, itemHeight, item, isSelected)
         if math.abs(Menu.SelectorY - itemY) < 0.5 then Menu.SelectorY = itemY end
         local drawY = Menu.SelectorY
 
-        local acR, acG, acB = Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0
-        -- Fondo con gradiente vertical muy notorio
+        -- Gradiente vertical intenso
         local steps = 30
         local stepH = itemHeight / steps
         for s=0, steps-1 do
             local sY = drawY + s*stepH
             local sH = math.min(stepH, drawY+itemHeight - sY)
             if sH > 0 then
-                local factor = s / steps
-                local eased = factor * factor * (3 - 2*factor)
-                local r = acR * (0.3 + eased*0.7)
-                local g = acG * (0.3 + eased*0.7)
-                local b = acB * (0.3 + eased*0.7)
-                Menu.DrawRect(x, sY, width, sH, r, g, b, 250)
+                local mix = s / steps
+                local r = Menu.Colors.Selected.r/255.0 * (0.4 + (1-mix)*0.6)
+                local g = Menu.Colors.Selected.g/255.0 * (0.4 + (1-mix)*0.6)
+                local b = Menu.Colors.Selected.b/255.0 * (0.4 + (1-mix)*0.6)
+                Menu.DrawRect(x, sY, width, sH, r, g, b, 240)
             end
         end
-        -- Borde izquierdo grueso neón
-        Menu.DrawRect(x, drawY, 5, itemHeight, acR, acG, acB, 255)
-        -- Borde superior e inferior neón sutil
-        Menu.DrawRect(x, drawY, width, 1, acR, acG, acB, 150)
-        Menu.DrawRect(x, drawY+itemHeight-1, width, 1, acR, acG, acB, 150)
+        -- Borde completo neón (izquierdo, derecho, y superior/inferior finos)
+        Menu.DrawRect(x, drawY, width, 2, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255)
+        Menu.DrawRect(x, drawY+itemHeight-2, width, 2, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255)
+        Menu.DrawRect(x, drawY, 3, itemHeight, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255)
+        Menu.DrawRect(x+width-3, drawY, 3, itemHeight, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 200)
         -- Sombra de texto
-        Menu.DrawText(x+20+1, itemY+itemHeight/2-8+1, item.name, 17, 0,0,0, 180)
+        Menu.DrawText(x+18+1, itemY+itemHeight/2-8+1, item.name, 17, 0,0,0, 150)
     end
 
-    local textX = x + 24
+    local textX = x + 22
     local textY = itemY + itemHeight/2 - 8
-    Menu.DrawText(textX, textY, item.name, 17, Menu.Colors.TextBright.r/255.0, Menu.Colors.TextBright.g/255.0, Menu.Colors.TextBright.b/255.0, 255)
+    Menu.DrawText(textX, textY, item.name, 17, Menu.Colors.Text.r/255.0, Menu.Colors.Text.g/255.0, Menu.Colors.Text.b/255.0, 255)
 
-    -- Controles (toggle, slider, selector) con estilo moderno
+    -- Controles (toggle, slider, selector) mejorados
     if item.type == "toggle" then
         local toggleW = 44 * scale
         local toggleH = 22 * scale
@@ -372,7 +367,7 @@ function Menu.DrawItem(x, itemY, width, itemHeight, item, isSelected)
         if item.value then
             Menu.DrawRoundedRect(toggleX, toggleY, toggleW, toggleH, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255, rad)
         else
-            Menu.DrawRoundedRect(toggleX, toggleY, toggleW, toggleH, 50,60,90, 220, rad)
+            Menu.DrawRoundedRect(toggleX, toggleY, toggleW, toggleH, 50,60,90, 200, rad)
         end
         local knobSize = toggleH - 6
         local knobY = toggleY + 3
@@ -398,12 +393,12 @@ function Menu.DrawItem(x, itemY, width, itemHeight, item, isSelected)
         Menu.DrawRoundedRect(thumbX, thumbY, thumbSize, thumbSize, 255,255,255, 255, thumbSize/2)
         local valText = string.format("%.0f", val)
         local tw = Susano.GetTextWidth and Susano.GetTextWidth(valText, 12) or (string.len(valText)*6)
-        Menu.DrawText(sliderX+sliderW+10, sliderY-2, valText, 12, Menu.Colors.TextBright.r/255.0, Menu.Colors.TextBright.g/255.0, Menu.Colors.TextBright.b/255.0, 200)
+        Menu.DrawText(sliderX+sliderW+10, sliderY-2, valText, 12, Menu.Colors.Text.r/255.0, Menu.Colors.Text.g/255.0, Menu.Colors.Text.b/255.0, 200)
     elseif item.type == "selector" and item.options then
         local selIdx = item.selected or 1
         local opt = item.options[selIdx] or ""
         local full = "< " .. opt .. " >"
-        local fs = 15
+        local fs = 16
         local tw = Susano.GetTextWidth and Susano.GetTextWidth(full, fs) or (string.len(full)*8)
         local tx = x + width - tw - 22
         Menu.DrawText(tx, textY, full, fs, Menu.Colors.TextDim.r/255.0, Menu.Colors.TextDim.g/255.0, Menu.Colors.TextDim.b/255.0, 255)
@@ -416,7 +411,7 @@ function Menu.DrawItem(x, itemY, width, itemHeight, item, isSelected)
         if item.value then
             Menu.DrawRoundedRect(toggleX, toggleY, toggleW, toggleH, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255, rad)
         else
-            Menu.DrawRoundedRect(toggleX, toggleY, toggleW, toggleH, 50,60,90, 220, rad)
+            Menu.DrawRoundedRect(toggleX, toggleY, toggleW, toggleH, 50,60,90, 200, rad)
         end
         local knobSize = toggleH - 4
         local knobY = toggleY + 2
@@ -426,7 +421,7 @@ function Menu.DrawItem(x, itemY, width, itemHeight, item, isSelected)
             local selIdx = item.selected or 1
             local opt = item.options[selIdx] or ""
             local optText = "< " .. opt .. " >"
-            local fs = 13
+            local fs = 14
             local tw = Susano.GetTextWidth and Susano.GetTextWidth(optText, fs) or (string.len(optText)*7)
             local tx = toggleX - tw - 12
             Menu.DrawText(tx, textY, optText, fs, Menu.Colors.TextDim.r/255.0, Menu.Colors.TextDim.g/255.0, Menu.Colors.TextDim.b/255.0, 255)
@@ -492,62 +487,58 @@ function Menu.DrawCategories()
     local tabH = p.mainMenuHeight
     local spacing = p.mainMenuSpacing
 
-    -- Top tabs (si existen)
     if Menu.TopLevelTabs then
         local tabCount = #Menu.TopLevelTabs
         local tabW = w / tabCount
         for i, tab in ipairs(Menu.TopLevelTabs) do
             local tabX = x + (i-1)*tabW
             local isSel = (i == Menu.CurrentTopTab)
-            Menu.DrawRect(tabX, startY, tabW, tabH, Menu.Colors.GlassBg.r, Menu.Colors.GlassBg.g, Menu.Colors.GlassBg.b, isSel and 180 or 100)
+            Menu.DrawRect(tabX, startY, tabW, tabH, Menu.Colors.GlassBg.r, Menu.Colors.GlassBg.g, Menu.Colors.GlassBg.b, isSel and 0 or 100)
             if isSel then
-                -- Gradiente de selección
                 local steps = 12
                 local stepH = tabH / steps
-                local acR, acG, acB = Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0
                 for s=0, steps-1 do
                     local sY = startY + s*stepH
                     local sH = math.min(stepH, startY+tabH - sY)
                     if sH > 0 then
                         local mix = 1 - (s / steps)
-                        local r = acR * (0.5 + mix*0.5)
-                        local g = acG * (0.5 + mix*0.5)
-                        local b = acB * (0.5 + mix*0.5)
-                        Menu.DrawRect(tabX, sY, tabW, sH, r, g, b, 220)
+                        local r = Menu.Colors.Selected.r/255.0 * (0.3 + mix*0.7)
+                        local g = Menu.Colors.Selected.g/255.0 * (0.3 + mix*0.7)
+                        local b = Menu.Colors.Selected.b/255.0 * (0.3 + mix*0.7)
+                        Menu.DrawRect(tabX, sY, tabW, sH, r, g, b, 230)
                     end
                 end
-                Menu.DrawRect(tabX, startY+tabH-2, tabW, 2, acR, acG, acB, 255)
+                Menu.DrawRect(tabX, startY+tabH-2, tabW, 2, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255)
             end
-            local fs = 14
-            local tw = Susano.GetTextWidth and Susano.GetTextWidth(tab.name, fs) or (string.len(tab.name)*7)
+            local fs = 15
+            local tw = Susano.GetTextWidth and Susano.GetTextWidth(tab.name, fs) or (string.len(tab.name)*8)
             local tx = tabX + tabW/2 - tw/2
             local ty = startY + tabH/2 - fs/2
-            local r,g,b = isSel and 255 or Menu.Colors.TextBright.r, isSel and 255 or Menu.Colors.TextBright.g, isSel and 255 or Menu.Colors.TextBright.b
-            Menu.DrawText(tx, ty, tab.name, fs, r/255.0, g/255.0, b/255.0, 255)
+            local r,g,b = isSel and 255 or Menu.Colors.Text.r, isSel and 255 or Menu.Colors.Text.g, isSel and 255 or Menu.Colors.Text.b
+            Menu.DrawText(tx, ty, tab.name, fs, r/255.0, g/255.0, b/255.0, 1.0)
         end
         startY = startY + tabH + spacing
     else
-        -- "Menú principal" con estilo seleccionado
+        -- Cabecera "Menú principal" con estilo glass y borde neón
         Menu.DrawRect(x, startY, w, tabH, Menu.Colors.GlassBg.r, Menu.Colors.GlassBg.g, Menu.Colors.GlassBg.b, 0)
         local steps = 12
         local stepH = tabH / steps
-        local acR, acG, acB = Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0
         for s=0, steps-1 do
             local sY = startY + s*stepH
             local sH = math.min(stepH, startY+tabH - sY)
             if sH > 0 then
                 local mix = 1 - (s / steps)
-                local r = acR * (0.5 + mix*0.5)
-                local g = acG * (0.5 + mix*0.5)
-                local b = acB * (0.5 + mix*0.5)
-                Menu.DrawRect(x, sY, w, sH, r, g, b, 220)
+                local r = Menu.Colors.Selected.r/255.0 * (0.3 + mix*0.7)
+                local g = Menu.Colors.Selected.g/255.0 * (0.3 + mix*0.7)
+                local b = Menu.Colors.Selected.b/255.0 * (0.3 + mix*0.7)
+                Menu.DrawRect(x, sY, w, sH, r, g, b, 230)
             end
         end
-        Menu.DrawRect(x, startY+tabH-2, w, 2, acR, acG, acB, 255)
+        Menu.DrawRect(x, startY+tabH-2, w, 2, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255)
         local title = Menu.Categories[1] and Menu.Categories[1].name or "MENÚ PRINCIPAL"
-        local fs = 16
-        local tw = Susano.GetTextWidth and Susano.GetTextWidth(title, fs) or (string.len(title)*8)
-        Menu.DrawText(x+w/2-tw/2, startY+tabH/2-fs/2, title, fs, 1,1,1, 255)
+        local fs = 17
+        local tw = Susano.GetTextWidth and Susano.GetTextWidth(title, fs) or (string.len(title)*9)
+        Menu.DrawText(x+w/2-tw/2, startY+tabH/2-fs/2, title, fs, 1,1,1, 1.0)
         startY = startY + tabH + spacing
     end
 
@@ -568,15 +559,14 @@ function Menu.DrawCategories()
             local cat = Menu.Categories[idx]
             local yPos = startY + (i-1)*itemH
             local isSel = (idx == Menu.CurrentCategory)
-            Menu.DrawRect(x, yPos, w, itemH, Menu.Colors.GlassCard.r, Menu.Colors.GlassCard.g, Menu.Colors.GlassCard.b, Menu.Colors.GlassCard.a)
+            Menu.DrawRect(x, yPos, w, itemH, Menu.Colors.GlassBg.r, Menu.Colors.GlassBg.g, Menu.Colors.GlassBg.b, isSel and 120 or 70)
             if isSel then
-                Menu.DrawRect(x, yPos, 5, itemH, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255)
-                Menu.DrawRect(x, yPos, w, 1, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 150)
-                Menu.DrawRect(x, yPos+itemH-1, w, 1, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 150)
+                Menu.DrawRect(x, yPos, 4, itemH, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255)
+                Menu.DrawRect(x, yPos, w, 2, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 180)
             end
-            local tx = x + 24
+            local tx = x + 22
             local ty = yPos + itemH/2 - 8
-            Menu.DrawText(tx, ty, cat.name, 17, Menu.Colors.TextBright.r/255.0, Menu.Colors.TextBright.g/255.0, Menu.Colors.TextBright.b/255.0, 255)
+            Menu.DrawText(tx, ty, cat.name, 17, Menu.Colors.Text.r/255.0, Menu.Colors.Text.g/255.0, Menu.Colors.Text.b/255.0, 255)
             Menu.DrawText(x+w-32, ty, "›", 18, Menu.Colors.TextDim.r/255.0, Menu.Colors.TextDim.g/255.0, Menu.Colors.TextDim.b/255.0, 200)
         end
     end
@@ -613,7 +603,7 @@ function Menu.DrawFooter()
     local w = p.width - 1
     local h = p.footerHeight
     Menu.DrawRoundedRect(x, footerY, w, h, Menu.Colors.GlassBg.r, Menu.Colors.GlassBg.g, Menu.Colors.GlassBg.b, Menu.Colors.GlassBg.a, p.footerRadius)
-    Menu.DrawRect(x, footerY, w, 1, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 100)
+    Menu.DrawRect(x, footerY, w, 1, Menu.Colors.GlassBorder.r/255.0, Menu.Colors.GlassBorder.g/255.0, Menu.Colors.GlassBorder.b/255.0, 100)
     local text = " .gg/sentexmodz  [ESE DEFA MAKINA AY] "
     local fs = 12
     local tw = Susano.GetTextWidth and Susano.GetTextWidth(text, fs) or (string.len(text)*6)
@@ -632,11 +622,11 @@ function Menu.DrawFooter()
     end
     if page ~= "" then
         local pw = Susano.GetTextWidth and Susano.GetTextWidth(page, fs) or (string.len(page)*6)
-        Menu.DrawText(x+w-pw-15, footerY+h/2-fs/2, page, fs, Menu.Colors.TextBright.r/255.0, Menu.Colors.TextBright.g/255.0, Menu.Colors.TextBright.b/255.0, 255)
+        Menu.DrawText(x+w-pw-15, footerY+h/2-fs/2, page, fs, Menu.Colors.Text.r/255.0, Menu.Colors.Text.g/255.0, Menu.Colors.Text.b/255.0, 255)
     end
 end
 
--- BARRA DE PROGRESO LINEAL (profesional)
+-- ========== BARRA DE PROGRESO LINEAL PROFESIONAL ==========
 function Menu.DrawLoadingBar(alpha)
     if alpha <= 0 then return end
     local sw, sh = 1920, 1080
@@ -644,27 +634,29 @@ function Menu.DrawLoadingBar(alpha)
     local w = 500
     local h = 6
     local x = sw/2 - w/2
-    local y = sh - 100
+    local y = sh - 80
     -- Fondo
-    Menu.DrawRoundedRect(x, y, w, h, 30,40,70, 180*alpha, 3)
+    Menu.DrawRoundedRect(x, y, w, h, 40,50,80, 180*alpha, 3)
     -- Progreso
     local progressW = w * (Menu.LoadingProgress / 100)
     if progressW > 0 then
         Menu.DrawRoundedRect(x, y, progressW, h, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255*alpha, 3)
+        -- Efecto de brillo al final
+        Menu.DrawRect(x+progressW-4, y, 6, h, 1,1,1, 150*alpha)
     end
     -- Texto porcentaje
     local percent = string.format("%.0f%%", Menu.LoadingProgress)
     local fs = 16
     local tw = Susano.GetTextWidth and Susano.GetTextWidth(percent, fs) or (string.len(percent)*8)
-    Menu.DrawText(x+w/2-tw/2, y-22, percent, fs, Menu.Colors.TextBright.r/255.0, Menu.Colors.TextBright.g/255.0, Menu.Colors.TextBright.b/255.0, 255*alpha)
+    Menu.DrawText(x+w/2-tw/2, y-22, percent, fs, Menu.Colors.Text.r/255.0, Menu.Colors.Text.g/255.0, Menu.Colors.Text.b/255.0, 255*alpha)
     -- Texto de estado
     local status = "INICIANDO"
     if Menu.LoadingProgress >= 100 then status = "LISTO" end
-    local sw2 = Susano.GetTextWidth and Susano.GetTextWidth(status, fs) or (string.len(status)*8)
-    Menu.DrawText(x+w/2-sw2/2, y-42, status, fs, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255*alpha)
+    local stw = Susano.GetTextWidth and Susano.GetTextWidth(status, 14) or (string.len(status)*7)
+    Menu.DrawText(x+w/2-stw/2, y-42, status, 14, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255*alpha)
 end
 
--- KeySelector con vista previa en tiempo real
+-- ========== SELECTOR DE TECLA CON VISUALIZACIÓN EN VIVO ==========
 function Menu.DrawKeySelector(alpha)
     if alpha <= 0 then return end
     local sw, sh = 1920, 1080
@@ -673,28 +665,24 @@ function Menu.DrawKeySelector(alpha)
     local x, y = sw/2-w/2, sh-180
     Menu.DrawRoundedRect(x, y, w, h, Menu.Colors.GlassBg.r, Menu.Colors.GlassBg.g, Menu.Colors.GlassBg.b, 220*alpha, 10)
     Menu.DrawRect(x, y, w, 2, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255*alpha)
-    local title = "ASIGNAR TECLA RÁPIDA"
-    Menu.DrawText(x+20, y+18, title, 16, Menu.Colors.TextBright.r/255.0, Menu.Colors.TextBright.g/255.0, Menu.Colors.TextBright.b/255.0, 255*alpha)
+    local title = "▸ ASIGNAR TECLA ◂"
+    Menu.DrawText(x+20, y+18, title, 16, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255*alpha)
     local itemName = Menu.BindingItem and Menu.BindingItem.name or "Opción"
-    Menu.DrawText(x+20, y+48, itemName, 15, Menu.Colors.TextDim.r/255.0, Menu.Colors.TextDim.g/255.0, Menu.Colors.TextDim.b/255.0, 255*alpha)
-    -- Mostrar tecla presionada temporalmente o la ya asignada
-    local showKey = Menu.TempBindKeyName or Menu.BindingKeyName or "..."
-    local statusText = "Presiona cualquier tecla..."
-    if Menu.TempBindKeyName then
-        statusText = "Tecla detectada: " .. Menu.TempBindKeyName .. " (presiona Enter para confirmar)"
-    end
-    Menu.DrawText(x+20, y+78, statusText, 13, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255*alpha)
-    -- Recuadro de la tecla
+    -- Mostrar la tecla que se ha pulsado (temp) o la guardada
+    local displayKey = Menu.BindingKeyName or "..."
+    if Menu.TempPressedKey then displayKey = Menu.TempPressedKey end
+    Menu.DrawText(x+20, y+50, itemName, 15, Menu.Colors.Text.r/255.0, Menu.Colors.Text.g/255.0, Menu.Colors.Text.b/255.0, 255*alpha)
+    Menu.DrawText(x+20, y+80, "Presiona cualquier tecla...", 13, Menu.Colors.TextDim.r/255.0, Menu.Colors.TextDim.g/255.0, Menu.Colors.TextDim.b/255.0, 200*alpha)
     local boxW, boxH = 80, 50
     local boxX = x + w - boxW - 25
     local boxY = y + h/2 - boxH/2
-    Menu.DrawRect(boxX, boxY, boxW, boxH, Menu.Colors.GlassCard.r, Menu.Colors.GlassCard.g, Menu.Colors.GlassCard.b, 255*alpha)
-    Menu.DrawRect(boxX, boxY, boxW, 1, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 200*alpha)
-    local kw = Susano.GetTextWidth and Susano.GetTextWidth(showKey, 20) or (string.len(showKey)*10)
-    Menu.DrawText(boxX+boxW/2-kw/2, boxY+boxH/2-10, showKey, 20, 255,240,100, 255*alpha)
+    Menu.DrawRect(boxX, boxY, boxW, boxH, Menu.Colors.GlassBg.r, Menu.Colors.GlassBg.g, Menu.Colors.GlassBg.b, 255*alpha)
+    Menu.DrawRect(boxX, boxY, boxW, 2, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 200*alpha)
+    local kw = Susano.GetTextWidth and Susano.GetTextWidth(displayKey, 20) or (string.len(displayKey)*10)
+    Menu.DrawText(boxX+boxW/2-kw/2, boxY+boxH/2-10, displayKey, 20, 255,240,100, 255*alpha)
 end
 
--- Panel de keybinds (lateral derecho)
+-- Panel de keybinds lateral (derecha)
 function Menu.DrawKeybindsInterface(alpha)
     if alpha <= 0 then return end
     local binds = {}
@@ -714,30 +702,30 @@ function Menu.DrawKeybindsInterface(alpha)
     if #binds == 0 then return end
     local sw, sh = 1920, 1080
     if Susano.GetScreenWidth then sw, sh = Susano.GetScreenWidth(), Susano.GetScreenHeight() end
-    local w = 270
+    local w = 260
     local h = 45 + #binds * 26
     local x = sw - w - 20
     local y = 80
     Menu.DrawRoundedRect(x, y, w, h, Menu.Colors.GlassBg.r, Menu.Colors.GlassBg.g, Menu.Colors.GlassBg.b, 200*alpha, 8)
     Menu.DrawRect(x, y, w, 1, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 150*alpha)
-    Menu.DrawText(x+15, y+12, "KEYBINDS", 13, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255*alpha)
+    Menu.DrawText(x+15, y+12, "⚡ TECLAS RÁPIDAS", 13, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255*alpha)
     for i, bind in ipairs(binds) do
-        local lineY = y + 38 + (i-1)*24
+        local lineY = y + 35 + (i-1)*24
         local text = bind.name .. "  [" .. bind.key .. "]"
         if bind.active ~= nil then
             text = text .. (bind.active and "  ✓" or "  ✗")
         end
-        Menu.DrawText(x+15, lineY, text, 12, Menu.Colors.TextBright.r/255.0, Menu.Colors.TextBright.g/255.0, Menu.Colors.TextBright.b/255.0, 220*alpha)
+        Menu.DrawText(x+15, lineY, text, 12, Menu.Colors.Text.r/255.0, Menu.Colors.Text.g/255.0, Menu.Colors.Text.b/255.0, 200*alpha)
     end
 end
 
--- Partículas de nieve (más suaves)
+-- Partículas de nieve mejoradas
 Menu.Particles = {}
-for i=1, 80 do
+for i=1, 100 do
     table.insert(Menu.Particles, {
         x = math.random(0,1000)/1000,
         y = math.random(0,1000)/1000,
-        speedY = math.random(20,90)/10000,
+        speedY = math.random(20,100)/10000,
         speedX = math.random(-20,20)/10000,
         size = math.random(1,2)
     })
@@ -748,13 +736,9 @@ function Menu.DrawBackground()
     local x = p.x
     local y = p.y
     local w = p.width - 1
-    -- Fondo principal con glassmorphism
-    Menu.DrawRoundedRect(x, y, w, 650, Menu.Colors.GlassBg.r, Menu.Colors.GlassBg.g, Menu.Colors.GlassBg.b, Menu.Colors.GlassBg.a, p.headerRadius)
-    -- Borde neón alrededor del menú
-    Menu.DrawRect(x, y, w, 1, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 80)
-    Menu.DrawRect(x, y+650-1, w, 1, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 80)
+    local hTotal = p.headerHeight + p.mainMenuHeight + p.mainMenuSpacing + (Menu.ItemsPerPage * p.itemHeight) + p.footerSpacing + p.footerHeight + 20
+    Menu.DrawRoundedRect(x, y, w, hTotal, Menu.Colors.GlassBg.r, Menu.Colors.GlassBg.g, Menu.Colors.GlassBg.b, Menu.Colors.GlassBg.a-40, p.headerRadius)
     if Menu.ShowSnowflakes then
-        local hTotal = 620
         for _, part in ipairs(Menu.Particles) do
             part.y = part.y + part.speedY
             part.x = part.x + part.speedX
@@ -767,7 +751,7 @@ function Menu.DrawBackground()
     end
 end
 
--- ========== MANEJO DE ENTRADA (con teclas especiales y preview) ==========
+-- ========== MANEJO DE ENTRADA (con visualización en vivo de tecla) ==========
 Menu.KeyStates = {}
 function Menu.IsKeyJustPressed(keyCode)
     if not Susano.GetAsyncKeyState then return false end
@@ -816,31 +800,30 @@ function Menu.HandleInput()
     if Menu.IsLoading or not Menu.LoadingComplete then return end
     if Menu.InputOpen then return end
 
-    -- Asignación de tecla para binding con vista previa
+    -- Asignación de tecla para binding (con visualización en vivo)
     if Menu.SelectingBind then
         if Menu.IsKeyJustPressed(0x0D) then
-            if Menu.TempBindKey and Menu.BindingItem then
-                Menu.BindingItem.bindKey = Menu.TempBindKey
-                Menu.BindingItem.bindKeyName = Menu.TempBindKeyName
+            if Menu.BindingKey and Menu.BindingItem then
+                Menu.BindingItem.bindKey = Menu.BindingKey
+                Menu.BindingItem.bindKeyName = Menu.BindingKeyName
             end
             Menu.SelectingBind = false
             Menu.BindingItem = nil
-            Menu.TempBindKey = nil
-            Menu.TempBindKeyName = nil
+            Menu.TempPressedKey = nil
             return
         end
-        -- Detectar tecla y actualizar preview
         for _,k in ipairs(captureKeys) do
             if k ~= 0x0D and Menu.IsKeyJustPressed(k) then
-                Menu.TempBindKey = k
-                Menu.TempBindKeyName = Menu.GetKeyName(k)
+                Menu.BindingKey = k
+                Menu.BindingKeyName = Menu.GetKeyName(k)
+                Menu.TempPressedKey = Menu.BindingKeyName   -- muestra inmediatamente
                 break
             end
         end
         return
     end
 
-    -- Selección de tecla para abrir menú (similar preview)
+    -- Selección de tecla para abrir menú (también con visualización)
     if Menu.SelectingKey then
         if Menu.IsKeyJustPressed(0x0D) then
             if Menu.SelectedKey then Menu.SelectingKey = false end
@@ -913,7 +896,7 @@ function Menu.HandleInput()
         end
         if lmb and not Menu.EditorDragging then
             local menuW = Menu.Position.width
-            local totalH = Menu.Position.headerHeight + (Menu.OpenedCategory and (Menu.Position.itemHeight * Menu.ItemsPerPage + 50) or (Menu.Position.itemHeight * (#Menu.Categories-1) + 50))
+            local totalH = Menu.Position.headerHeight + (Menu.OpenedCategory and (Menu.Position.itemHeight * Menu.ItemsPerPage + 60) or (Menu.Position.itemHeight * (#Menu.Categories-1) + 60))
             if mx>=Menu.Position.x and mx<=Menu.Position.x+menuW and my>=Menu.Position.y and my<=Menu.Position.y+totalH then
                 Menu.EditorDragging = true
                 Menu.EditorDragOffsetX = mx - Menu.Position.x
@@ -1028,8 +1011,9 @@ function Menu.HandleInput()
                 if item and not item.isSeparator then
                     Menu.SelectingBind = true
                     Menu.BindingItem = item
-                    Menu.TempBindKey = item.bindKey
-                    Menu.TempBindKeyName = item.bindKeyName
+                    Menu.BindingKey = item.bindKey
+                    Menu.BindingKeyName = item.bindKeyName
+                    Menu.TempPressedKey = item.bindKeyName or "..."
                 end
             end
             -- Cambiar pestañas con Q/E
@@ -1199,20 +1183,20 @@ function Menu.DrawInputWindow()
     if not Menu.InputOpen then return end
     local sw, sh = 1920,1080
     if Susano.GetScreenWidth then sw, sh = Susano.GetScreenWidth(), Susano.GetScreenHeight() end
-    local w, h = 360, 150
+    local w, h = 350, 140
     local x, y = sw/2-w/2, sh/2-h/2
-    Menu.DrawRoundedRect(x, y, w, h, Menu.Colors.GlassBg.r, Menu.Colors.GlassBg.g, Menu.Colors.GlassBg.b, 230, 10)
+    Menu.DrawRoundedRect(x, y, w, h, Menu.Colors.GlassBg.r, Menu.Colors.GlassBg.g, Menu.Colors.GlassBg.b, 230, 8)
     Menu.DrawRect(x, y, w, 2, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255)
-    Menu.DrawText(x+20, y+20, Menu.InputTitle, 18, Menu.Colors.TextBright.r/255.0, Menu.Colors.TextBright.g/255.0, Menu.Colors.TextBright.b/255.0, 255)
-    Menu.DrawText(x+20, y+52, Menu.InputSubtitle, 13, Menu.Colors.TextDim.r/255.0, Menu.Colors.TextDim.g/255.0, Menu.Colors.TextDim.b/255.0, 255)
-    local boxW, boxH = w-40, 32
-    local boxX, boxY = x+20, y+85
-    Menu.DrawRect(boxX-1, boxY-1, boxW+2, boxH+2, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 150)
-    Menu.DrawRect(boxX, boxY, boxW, boxH, Menu.Colors.GlassCard.r, Menu.Colors.GlassCard.g, Menu.Colors.GlassCard.b, 255)
+    Menu.DrawText(x+20, y+20, Menu.InputTitle, 18, Menu.Colors.Text.r/255.0, Menu.Colors.Text.g/255.0, Menu.Colors.Text.b/255.0, 255)
+    Menu.DrawText(x+20, y+50, Menu.InputSubtitle, 13, Menu.Colors.TextDim.r/255.0, Menu.Colors.TextDim.g/255.0, Menu.Colors.TextDim.b/255.0, 255)
+    local boxW, boxH = w-40, 30
+    local boxX, boxY = x+20, y+80
+    Menu.DrawRect(boxX-1, boxY-1, boxW+2, boxH+2, Menu.Colors.GlassBg.r, Menu.Colors.GlassBg.g, Menu.Colors.GlassBg.b, 255)
+    Menu.DrawRect(boxX, boxY, boxW, boxH, 0,0,0, 200)
     local display = Menu.InputText
     if math.floor(GetGameTimer()/500)%2==0 then display = display.."|" end
     if #display>30 then display = "..."..string.sub(display,-30) end
-    Menu.DrawText(boxX+12, boxY+6, display, 16, Menu.Colors.TextBright.r/255.0, Menu.Colors.TextBright.g/255.0, Menu.Colors.TextBright.b/255.0, 255)
+    Menu.DrawText(boxX+10, boxY+5, display, 16, Menu.Colors.Text.r/255.0, Menu.Colors.Text.g/255.0, Menu.Colors.Text.b/255.0, 255)
     if Menu.IsKeyJustPressed(0x0D) then
         Menu.InputOpen = false
         if Menu.InputCallback then Menu.InputCallback(Menu.InputText) end
@@ -1264,9 +1248,9 @@ CreateThread(function()
     end
 end)
 
--- Cargar banner y aplicar tema por defecto
+-- Cargar banner y aplicar tema
 if Menu.Banner.enabled and Menu.Banner.imageUrl then Menu.LoadBannerTexture(Menu.Banner.imageUrl) end
-Menu.ApplyTheme("NeoGlass")
+Menu.ApplyTheme("Glass")
 
 -- Forzar fondo negro desactivado y nieve activada
 CreateThread(function()
