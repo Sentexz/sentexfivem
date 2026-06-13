@@ -41,20 +41,20 @@ Menu.SelectingBind = false
 Menu.BindingItem = nil
 Menu.BindingKey = nil
 Menu.BindingKeyName = nil
-Menu.TempPressedKey = nil   -- para mostrar tecla en selector antes de Enter
+Menu.TempPressedKey = nil
 
 Menu.ShowKeybinds = false
 Menu.CurrentTopTab = 1
 
--- ========== PALETA GLASS / NEÓN ==========
+-- Paleta profesional (Glass / Neon)
 Menu.Colors = {
-    GlassBg     = { r = 10, g = 15, b = 30, a = 200 },   -- fondo cristal
-    GlassBorder = { r = 0,  g = 210, b = 255, a = 150 }, -- borde cian
-    Accent      = { r = 0,  g = 180, b = 255 },          -- acento principal
+    GlassBg     = { r = 10, g = 15, b = 30, a = 200 },
+    GlassBorder = { r = 0,  g = 210, b = 255, a = 150 },
+    Accent      = { r = 0,  g = 180, b = 255 },
     AccentDark  = { r = 0,  g = 120, b = 200 },
     Text        = { r = 255, g = 255, b = 255 },
     TextDim     = { r = 160, g = 170, b = 210 },
-    Selected    = { r = 0,  g = 150, b = 230 },          -- color de selección
+    Selected    = { r = 0,  g = 150, b = 230 },
 }
 Menu.CurrentTheme = "Glass"
 
@@ -116,7 +116,7 @@ function Menu.ApplyTheme(themeName)
     end
 end
 
--- Dimensiones exactas del original (limpias)
+-- Dimensiones originales exactas
 Menu.Position = {
     x = 20,
     y = 80,
@@ -155,7 +155,38 @@ function Menu.GetScaledPosition()
     }
 end
 
--- Funciones de dibujo optimizadas
+-- Calcula la altura real del menú según el contenido
+function Menu.GetActualHeight()
+    local p = Menu.GetScaledPosition()
+    local scale = Menu.Scale or 1.0
+    local bannerH = Menu.Banner.enabled and (Menu.Banner.height * scale) or p.headerHeight
+    local height = bannerH
+    if Menu.OpenedCategory then
+        local cat = Menu.Categories[Menu.OpenedCategory]
+        if cat and cat.hasTabs and cat.tabs then
+            local tab = cat.tabs[Menu.CurrentTab]
+            if tab and tab.items then
+                local visible = math.min(Menu.ItemsPerPage, #tab.items)
+                height = height + p.mainMenuHeight + p.mainMenuSpacing + (visible * p.itemHeight)
+            else
+                height = height + p.mainMenuHeight + p.mainMenuSpacing
+            end
+        else
+            height = height + p.mainMenuHeight + p.mainMenuSpacing
+        end
+    else
+        local totalCats = #Menu.Categories - 1
+        local visibleCats = math.min(Menu.ItemsPerPage, totalCats)
+        height = height + p.mainMenuHeight + p.mainMenuSpacing + (visibleCats * p.itemHeight)
+        -- Si hay TopLevelTabs, ya están incluidos en mainMenuHeight, pero cuidado porque la variable startY se ajusta.
+        -- En realidad, la altura se calcula desde el banner hasta el footer.
+        -- Añadimos el footer al final.
+    end
+    height = height + p.footerSpacing + p.footerHeight
+    return height
+end
+
+-- Funciones de dibujo (sin cambios, pero las incluyo completas)
 function Menu.DrawRect(x, y, w, h, r, g, b, a)
     a = a or 1.0
     if r > 1.0 then r = r/255.0 end
@@ -201,7 +232,6 @@ function Menu.DrawRoundedRect(x, y, w, h, r, g, b, a, radius)
     end
 end
 
--- Header con efecto glass y gradiente
 function Menu.DrawHeader()
     local p = Menu.GetScaledPosition()
     local x, y, w = p.x, p.y, p.width-1
@@ -210,11 +240,8 @@ function Menu.DrawHeader()
     if Menu.Banner.enabled and Menu.bannerTexture and Menu.bannerTexture>0 and Susano.DrawImage then
         Susano.DrawImage(Menu.bannerTexture, x, y, w, bannerH, 1,1,1,1,0)
     else
-        -- Fondo glass
         Menu.DrawRoundedRect(x, y, w, h, Menu.Colors.GlassBg.r, Menu.Colors.GlassBg.g, Menu.Colors.GlassBg.b, Menu.Colors.GlassBg.a, p.headerRadius)
-        -- Borde inferior neón
         Menu.DrawRect(x, y+h-2, w, 2, Menu.Colors.GlassBorder.r/255.0, Menu.Colors.GlassBorder.g/255.0, Menu.Colors.GlassBorder.b/255.0, Menu.Colors.GlassBorder.a/255.0)
-        -- Logo
         local logo = "⚡ PHAZE ⚡"
         local fs = 28
         local tw = Susano.GetTextWidth and Susano.GetTextWidth(logo, fs) or (string.len(logo)*14)
@@ -222,7 +249,6 @@ function Menu.DrawHeader()
     end
 end
 
--- Scrollbar minimalista
 function Menu.DrawScrollbar(x, startY, visibleHeight, selectedIndex, totalItems, isMainMenu, menuWidth)
     if totalItems < 1 then return end
     local p = Menu.GetScaledPosition()
@@ -243,14 +269,11 @@ function Menu.DrawScrollbar(x, startY, visibleHeight, selectedIndex, totalItems,
         thumbY = sbY + progress * (sbH - thumbH)
         thumbY = math.max(sbY, math.min(sbY+sbH-thumbH, thumbY))
     end
-    -- Track
     Menu.DrawRect(sbX, sbY, sbW, sbH, 40,50,80, 80)
-    -- Thumb
     local acR, acG, acB = Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0
     Menu.DrawRoundedRect(sbX, thumbY, sbW, thumbH, acR, acG, acB, 220, sbW/2)
 end
 
--- Pestañas modernas
 function Menu.DrawTabs(category, x, startY, width, tabHeight)
     if not category or not category.hasTabs or not category.tabs then return end
     local scale = Menu.Scale or 1.0
@@ -262,7 +285,6 @@ function Menu.DrawTabs(category, x, startY, width, tabHeight)
         local isSel = (i == Menu.CurrentTab)
         Menu.DrawRect(tabX, startY, curW, tabHeight, Menu.Colors.GlassBg.r, Menu.Colors.GlassBg.g, Menu.Colors.GlassBg.b, isSel and 0 or 100)
         if isSel then
-            -- Gradiente de selección
             local steps = 12
             local stepH = tabHeight / steps
             for s=0, steps-1 do
@@ -276,7 +298,6 @@ function Menu.DrawTabs(category, x, startY, width, tabHeight)
                     Menu.DrawRect(tabX, sY, curW, sH, r, g, b, 230)
                 end
             end
-            -- Línea inferior brillante
             Menu.DrawRect(tabX, startY+tabHeight-2, curW, 2, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255)
         end
         local fontSize = 15
@@ -301,7 +322,6 @@ local function findNextNonSeparator(items, startIndex, direction)
     return startIndex
 end
 
--- Ítem con selección muy visible (borde neón completo y glow)
 function Menu.DrawItem(x, itemY, width, itemHeight, item, isSelected)
     local scale = Menu.Scale or 1.0
     if item.isSeparator then
@@ -320,7 +340,6 @@ function Menu.DrawItem(x, itemY, width, itemHeight, item, isSelected)
         return
     end
 
-    -- Fondo del ítem (semi-transparente)
     Menu.DrawRect(x, itemY, width, itemHeight, Menu.Colors.GlassBg.r, Menu.Colors.GlassBg.g, Menu.Colors.GlassBg.b, 80)
 
     if isSelected then
@@ -330,7 +349,6 @@ function Menu.DrawItem(x, itemY, width, itemHeight, item, isSelected)
         if math.abs(Menu.SelectorY - itemY) < 0.5 then Menu.SelectorY = itemY end
         local drawY = Menu.SelectorY
 
-        -- Gradiente vertical intenso
         local steps = 30
         local stepH = itemHeight / steps
         for s=0, steps-1 do
@@ -344,12 +362,10 @@ function Menu.DrawItem(x, itemY, width, itemHeight, item, isSelected)
                 Menu.DrawRect(x, sY, width, sH, r, g, b, 240)
             end
         end
-        -- Borde completo neón (izquierdo, derecho, y superior/inferior finos)
         Menu.DrawRect(x, drawY, width, 2, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255)
         Menu.DrawRect(x, drawY+itemHeight-2, width, 2, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255)
         Menu.DrawRect(x, drawY, 3, itemHeight, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255)
         Menu.DrawRect(x+width-3, drawY, 3, itemHeight, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 200)
-        -- Sombra de texto
         Menu.DrawText(x+18+1, itemY+itemHeight/2-8+1, item.name, 17, 0,0,0, 150)
     end
 
@@ -357,7 +373,6 @@ function Menu.DrawItem(x, itemY, width, itemHeight, item, isSelected)
     local textY = itemY + itemHeight/2 - 8
     Menu.DrawText(textX, textY, item.name, 17, Menu.Colors.Text.r/255.0, Menu.Colors.Text.g/255.0, Menu.Colors.Text.b/255.0, 255)
 
-    -- Controles (toggle, slider, selector) mejorados
     if item.type == "toggle" then
         local toggleW = 44 * scale
         local toggleH = 22 * scale
@@ -476,7 +491,6 @@ function Menu.DrawCategories()
         return
     end
 
-    -- Menú principal (categorías)
     local p = Menu.GetScaledPosition()
     local scale = Menu.Scale or 1.0
     local x = p.x
@@ -519,7 +533,6 @@ function Menu.DrawCategories()
         end
         startY = startY + tabH + spacing
     else
-        -- Cabecera "Menú principal" con estilo glass y borde neón
         Menu.DrawRect(x, startY, w, tabH, Menu.Colors.GlassBg.r, Menu.Colors.GlassBg.g, Menu.Colors.GlassBg.b, 0)
         local steps = 12
         local stepH = tabH / steps
@@ -542,7 +555,6 @@ function Menu.DrawCategories()
         startY = startY + tabH + spacing
     end
 
-    -- Lista de categorías
     local totalCats = #Menu.Categories - 1
     local maxVis = Menu.ItemsPerPage
     if Menu.CurrentCategory > Menu.CategoryScrollOffset + maxVis + 1 then
@@ -588,7 +600,7 @@ function Menu.DrawFooter()
             local tab = cat.tabs[Menu.CurrentTab]
             if tab and tab.items then
                 local vis = math.min(Menu.ItemsPerPage, #tab.items)
-                totalH = totalH + p.mainMenuHeight + p.mainMenuSpacing + vis * p.itemHeight
+                totalH = totalH + p.mainMenuHeight + p.mainMenuSpacing + (vis * p.itemHeight)
             else
                 totalH = totalH + p.mainMenuHeight + p.mainMenuSpacing
             end
@@ -597,7 +609,7 @@ function Menu.DrawFooter()
         end
     else
         local vis = math.min(Menu.ItemsPerPage, #Menu.Categories-1)
-        totalH = totalH + p.mainMenuHeight + p.mainMenuSpacing + vis * p.itemHeight
+        totalH = totalH + p.mainMenuHeight + p.mainMenuSpacing + (vis * p.itemHeight)
     end
     local footerY = p.y + totalH + p.footerSpacing
     local w = p.width - 1
@@ -626,7 +638,7 @@ function Menu.DrawFooter()
     end
 end
 
--- ========== BARRA DE PROGRESO LINEAL PROFESIONAL ==========
+-- Barra de progreso profesional
 function Menu.DrawLoadingBar(alpha)
     if alpha <= 0 then return end
     local sw, sh = 1920, 1080
@@ -635,28 +647,23 @@ function Menu.DrawLoadingBar(alpha)
     local h = 6
     local x = sw/2 - w/2
     local y = sh - 80
-    -- Fondo
     Menu.DrawRoundedRect(x, y, w, h, 40,50,80, 180*alpha, 3)
-    -- Progreso
     local progressW = w * (Menu.LoadingProgress / 100)
     if progressW > 0 then
         Menu.DrawRoundedRect(x, y, progressW, h, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255*alpha, 3)
-        -- Efecto de brillo al final
         Menu.DrawRect(x+progressW-4, y, 6, h, 1,1,1, 150*alpha)
     end
-    -- Texto porcentaje
     local percent = string.format("%.0f%%", Menu.LoadingProgress)
     local fs = 16
     local tw = Susano.GetTextWidth and Susano.GetTextWidth(percent, fs) or (string.len(percent)*8)
     Menu.DrawText(x+w/2-tw/2, y-22, percent, fs, Menu.Colors.Text.r/255.0, Menu.Colors.Text.g/255.0, Menu.Colors.Text.b/255.0, 255*alpha)
-    -- Texto de estado
     local status = "INICIANDO"
     if Menu.LoadingProgress >= 100 then status = "LISTO" end
     local stw = Susano.GetTextWidth and Susano.GetTextWidth(status, 14) or (string.len(status)*7)
     Menu.DrawText(x+w/2-stw/2, y-42, status, 14, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255*alpha)
 end
 
--- ========== SELECTOR DE TECLA CON VISUALIZACIÓN EN VIVO ==========
+-- KeySelector con visualización en vivo
 function Menu.DrawKeySelector(alpha)
     if alpha <= 0 then return end
     local sw, sh = 1920, 1080
@@ -668,7 +675,6 @@ function Menu.DrawKeySelector(alpha)
     local title = "▸ ASIGNAR TECLA ◂"
     Menu.DrawText(x+20, y+18, title, 16, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 255*alpha)
     local itemName = Menu.BindingItem and Menu.BindingItem.name or "Opción"
-    -- Mostrar la tecla que se ha pulsado (temp) o la guardada
     local displayKey = Menu.BindingKeyName or "..."
     if Menu.TempPressedKey then displayKey = Menu.TempPressedKey end
     Menu.DrawText(x+20, y+50, itemName, 15, Menu.Colors.Text.r/255.0, Menu.Colors.Text.g/255.0, Menu.Colors.Text.b/255.0, 255*alpha)
@@ -682,7 +688,6 @@ function Menu.DrawKeySelector(alpha)
     Menu.DrawText(boxX+boxW/2-kw/2, boxY+boxH/2-10, displayKey, 20, 255,240,100, 255*alpha)
 end
 
--- Panel de keybinds lateral (derecha)
 function Menu.DrawKeybindsInterface(alpha)
     if alpha <= 0 then return end
     local binds = {}
@@ -719,7 +724,7 @@ function Menu.DrawKeybindsInterface(alpha)
     end
 end
 
--- Partículas de nieve mejoradas
+-- Partículas de nieve
 Menu.Particles = {}
 for i=1, 100 do
     table.insert(Menu.Particles, {
@@ -736,8 +741,8 @@ function Menu.DrawBackground()
     local x = p.x
     local y = p.y
     local w = p.width - 1
-    local hTotal = p.headerHeight + p.mainMenuHeight + p.mainMenuSpacing + (Menu.ItemsPerPage * p.itemHeight) + p.footerSpacing + p.footerHeight + 20
-    Menu.DrawRoundedRect(x, y, w, hTotal, Menu.Colors.GlassBg.r, Menu.Colors.GlassBg.g, Menu.Colors.GlassBg.b, Menu.Colors.GlassBg.a-40, p.headerRadius)
+    local actualHeight = Menu.GetActualHeight()
+    Menu.DrawRoundedRect(x, y, w, actualHeight, Menu.Colors.GlassBg.r, Menu.Colors.GlassBg.g, Menu.Colors.GlassBg.b, Menu.Colors.GlassBg.a-40, p.headerRadius)
     if Menu.ShowSnowflakes then
         for _, part in ipairs(Menu.Particles) do
             part.y = part.y + part.speedY
@@ -745,13 +750,13 @@ function Menu.DrawBackground()
             if part.y > 1 then part.y = 0; part.x = math.random(0,1000)/1000 end
             if part.x < 0 then part.x = 1 elseif part.x > 1 then part.x = 0 end
             local px = x + part.x * w
-            local py = y + part.y * hTotal
+            local py = y + part.y * actualHeight
             Menu.DrawRect(px, py, part.size, part.size, 200,220,255, 100)
         end
     end
 end
 
--- ========== MANEJO DE ENTRADA (con visualización en vivo de tecla) ==========
+-- ========== MANEJO DE ENTRADA (con teclas especiales) ==========
 Menu.KeyStates = {}
 function Menu.IsKeyJustPressed(keyCode)
     if not Susano.GetAsyncKeyState then return false end
@@ -800,7 +805,6 @@ function Menu.HandleInput()
     if Menu.IsLoading or not Menu.LoadingComplete then return end
     if Menu.InputOpen then return end
 
-    -- Asignación de tecla para binding (con visualización en vivo)
     if Menu.SelectingBind then
         if Menu.IsKeyJustPressed(0x0D) then
             if Menu.BindingKey and Menu.BindingItem then
@@ -816,14 +820,13 @@ function Menu.HandleInput()
             if k ~= 0x0D and Menu.IsKeyJustPressed(k) then
                 Menu.BindingKey = k
                 Menu.BindingKeyName = Menu.GetKeyName(k)
-                Menu.TempPressedKey = Menu.BindingKeyName   -- muestra inmediatamente
+                Menu.TempPressedKey = Menu.BindingKeyName
                 break
             end
         end
         return
     end
 
-    -- Selección de tecla para abrir menú (también con visualización)
     if Menu.SelectingKey then
         if Menu.IsKeyJustPressed(0x0D) then
             if Menu.SelectedKey then Menu.SelectingKey = false end
@@ -864,7 +867,6 @@ function Menu.HandleInput()
         end
     end
 
-    -- Tecla para mostrar/ocultar menú
     local toggleKey = Menu.SelectedKey or 0x31
     if Menu.IsKeyJustPressed(toggleKey) then
         Menu.Visible = not Menu.Visible
@@ -875,7 +877,6 @@ function Menu.HandleInput()
 
     if not Menu.Visible then return end
 
-    -- Modo editor (arrastrar)
     if Menu.EditorMode then
         local sw, sh = 1920, 1080
         if Susano.GetScreenWidth then sw, sh = Susano.GetScreenWidth(), Susano.GetScreenHeight() end
@@ -896,7 +897,7 @@ function Menu.HandleInput()
         end
         if lmb and not Menu.EditorDragging then
             local menuW = Menu.Position.width
-            local totalH = Menu.Position.headerHeight + (Menu.OpenedCategory and (Menu.Position.itemHeight * Menu.ItemsPerPage + 60) or (Menu.Position.itemHeight * (#Menu.Categories-1) + 60))
+            local totalH = Menu.GetActualHeight()
             if mx>=Menu.Position.x and mx<=Menu.Position.x+menuW and my>=Menu.Position.y and my<=Menu.Position.y+totalH then
                 Menu.EditorDragging = true
                 Menu.EditorDragOffsetX = mx - Menu.Position.x
@@ -909,14 +910,14 @@ function Menu.HandleInput()
             local newX = mx - Menu.EditorDragOffsetX
             local newY = my - Menu.EditorDragOffsetY
             newX = math.max(0, math.min(sw-Menu.Position.width, newX))
-            newY = math.max(0, math.min(sh-400, newY))
+            newY = math.max(0, math.min(sh-totalH, newY))
             Menu.Position.x = newX
             Menu.Position.y = newY
         end
         return
     end
 
-    -- Navegación normal (vertical)
+    -- Navegación normal
     if Menu.OpenedCategory then
         local cat = Menu.Categories[Menu.OpenedCategory]
         if not cat or not cat.hasTabs or not cat.tabs then
@@ -925,11 +926,11 @@ function Menu.HandleInput()
         end
         local curTab = cat.tabs[Menu.CurrentTab]
         if curTab and curTab.items then
-            if Menu.IsKeyJustPressed(0x26) then -- Up
+            if Menu.IsKeyJustPressed(0x26) then
                 Menu.CurrentItem = findNextNonSeparator(curTab.items, Menu.CurrentItem, -1)
-            elseif Menu.IsKeyJustPressed(0x28) then -- Down
+            elseif Menu.IsKeyJustPressed(0x28) then
                 Menu.CurrentItem = findNextNonSeparator(curTab.items, Menu.CurrentItem, 1)
-            elseif Menu.IsKeyJustPressed(0x25) or Menu.IsKeyJustPressed(0x41) then -- Left / A
+            elseif Menu.IsKeyJustPressed(0x25) or Menu.IsKeyJustPressed(0x41) then
                 local item = curTab.items[Menu.CurrentItem]
                 if item then
                     if item.type == "slider" then
@@ -952,7 +953,7 @@ function Menu.HandleInput()
                         item.sliderValue = math.max(item.sliderMin or 0, (item.sliderValue or 0) - (item.sliderStep or 0.1))
                     end
                 end
-            elseif Menu.IsKeyJustPressed(0x27) or Menu.IsKeyJustPressed(0x45) then -- Right / E
+            elseif Menu.IsKeyJustPressed(0x27) or Menu.IsKeyJustPressed(0x45) then
                 local item = curTab.items[Menu.CurrentItem]
                 if item then
                     if item.type == "slider" then
@@ -975,7 +976,7 @@ function Menu.HandleInput()
                         item.sliderValue = math.min(item.sliderMax or 100, (item.sliderValue or 0) + (item.sliderStep or 0.1))
                     end
                 end
-            elseif Menu.IsKeyJustPressed(0x08) then -- Backspace
+            elseif Menu.IsKeyJustPressed(0x08) then
                 if Menu.TopLevelTabs and Menu.TopLevelTabs[Menu.CurrentTopTab].autoOpen then
                     if Menu.CurrentTopTab > 1 then
                         Menu.CurrentTopTab = 1
@@ -988,7 +989,7 @@ function Menu.HandleInput()
                     Menu.CurrentItem = 1
                     Menu.CurrentTab = 1
                 end
-            elseif Menu.IsKeyJustPressed(0x0D) then -- Enter
+            elseif Menu.IsKeyJustPressed(0x0D) then
                 local item = curTab.items[Menu.CurrentItem]
                 if item and not item.isSeparator then
                     if item.type == "toggle" or item.type == "toggle_selector" then
@@ -1006,7 +1007,7 @@ function Menu.HandleInput()
                         if item.onClick then item.onClick(item.selected, item.options[item.selected]) end
                     end
                 end
-            elseif Menu.IsKeyJustPressed(0x78) then -- F9
+            elseif Menu.IsKeyJustPressed(0x78) then
                 local item = curTab.items[Menu.CurrentItem]
                 if item and not item.isSeparator then
                     Menu.SelectingBind = true
@@ -1016,8 +1017,7 @@ function Menu.HandleInput()
                     Menu.TempPressedKey = item.bindKeyName or "..."
                 end
             end
-            -- Cambiar pestañas con Q/E
-            if Menu.IsKeyJustPressed(0x51) then -- Q
+            if Menu.IsKeyJustPressed(0x51) then
                 if Menu.CurrentTab > 1 then
                     Menu.CurrentTab = Menu.CurrentTab - 1
                     local newTab = cat.tabs[Menu.CurrentTab]
@@ -1031,7 +1031,7 @@ function Menu.HandleInput()
                     if Menu.CurrentTopTab < 1 then Menu.CurrentTopTab = #Menu.TopLevelTabs end
                     Menu.UpdateCategoriesFromTopTab()
                 end
-            elseif Menu.IsKeyJustPressed(0x45) then -- E
+            elseif Menu.IsKeyJustPressed(0x45) then
                 if Menu.CurrentTab < #cat.tabs then
                     Menu.CurrentTab = Menu.CurrentTab + 1
                     local newTab = cat.tabs[Menu.CurrentTab]
@@ -1048,26 +1048,25 @@ function Menu.HandleInput()
             end
         end
     else
-        -- Navegación de categorías (vertical)
-        if Menu.IsKeyJustPressed(0x26) then -- Up
+        if Menu.IsKeyJustPressed(0x26) then
             Menu.CurrentCategory = Menu.CurrentCategory - 1
             if Menu.CurrentCategory < 2 then Menu.CurrentCategory = #Menu.Categories end
-        elseif Menu.IsKeyJustPressed(0x28) then -- Down
+        elseif Menu.IsKeyJustPressed(0x28) then
             Menu.CurrentCategory = Menu.CurrentCategory + 1
             if Menu.CurrentCategory > #Menu.Categories then Menu.CurrentCategory = 2 end
-        elseif Menu.IsKeyJustPressed(0x25) or Menu.IsKeyJustPressed(0x41) then -- Left / A (cambiar top tab)
+        elseif Menu.IsKeyJustPressed(0x25) or Menu.IsKeyJustPressed(0x41) then
             if Menu.TopLevelTabs then
                 Menu.CurrentTopTab = Menu.CurrentTopTab - 1
                 if Menu.CurrentTopTab < 1 then Menu.CurrentTopTab = #Menu.TopLevelTabs end
                 Menu.UpdateCategoriesFromTopTab()
             end
-        elseif Menu.IsKeyJustPressed(0x27) or Menu.IsKeyJustPressed(0x45) then -- Right / E
+        elseif Menu.IsKeyJustPressed(0x27) or Menu.IsKeyJustPressed(0x45) then
             if Menu.TopLevelTabs then
                 Menu.CurrentTopTab = Menu.CurrentTopTab + 1
                 if Menu.CurrentTopTab > #Menu.TopLevelTabs then Menu.CurrentTopTab = 1 end
                 Menu.UpdateCategoriesFromTopTab()
             end
-        elseif Menu.IsKeyJustPressed(0x0D) then -- Enter
+        elseif Menu.IsKeyJustPressed(0x0D) then
             local cat = Menu.Categories[Menu.CurrentCategory]
             if cat and cat.hasTabs and cat.tabs then
                 Menu.OpenedCategory = Menu.CurrentCategory
@@ -1082,7 +1081,7 @@ function Menu.HandleInput()
     end
 end
 
--- Funciones auxiliares (banner, actualización de categorías, etc.)
+-- Funciones auxiliares
 function Menu.UpdateCategoriesFromTopTab()
     if not Menu.TopLevelTabs then return end
     local currentTop = Menu.TopLevelTabs[Menu.CurrentTopTab]
@@ -1248,11 +1247,9 @@ CreateThread(function()
     end
 end)
 
--- Cargar banner y aplicar tema
 if Menu.Banner.enabled and Menu.Banner.imageUrl then Menu.LoadBannerTexture(Menu.Banner.imageUrl) end
 Menu.ApplyTheme("Glass")
 
--- Forzar fondo negro desactivado y nieve activada
 CreateThread(function()
     while not Menu.Categories do Wait(100) end
     Wait(500)
