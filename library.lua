@@ -65,37 +65,37 @@ function Menu.ApplyTheme(themeName)
         Menu.Colors.SelectedBg   = { r = 0,   g = 120, b = 220 }
         Menu.Colors.TextWhite    = { r = 255, g = 255, b = 255 }
         Menu.Colors.BackgroundDark = { r = 8, g = 14, b = 28 }
-        Menu.Banner.imageUrl = "https://i.imgur.com/dWBrem7.jpeg"
+        Menu.Banner.imageUrl = "https://i.imgur.com/RjJe1zr.jpeg"
     elseif themeLower == "red" then
         Menu.Colors.HeaderAccent = { r = 255, g = 40,  b = 40 }
         Menu.Colors.SelectedBg   = { r = 200, g = 20,  b = 20 }
         Menu.Colors.TextWhite    = { r = 255, g = 255, b = 255 }
         Menu.Colors.BackgroundDark = { r = 20, g = 8,  b = 8 }
-        Menu.Banner.imageUrl = "https://i.imgur.com/dWBrem7.jpeg"
+        Menu.Banner.imageUrl = "https://i.imgur.com/RjJe1zr.jpeg"
     elseif themeLower == "purple" then
         Menu.Colors.HeaderAccent = { r = 160, g = 80,  b = 220 }
         Menu.Colors.SelectedBg   = { r = 120, g = 40,  b = 180 }
         Menu.Colors.TextWhite    = { r = 255, g = 255, b = 255 }
         Menu.Colors.BackgroundDark = { r = 14, g = 8,  b = 22 }
-        Menu.Banner.imageUrl = "https://i.imgur.com/dWBrem7.jpeg"
+        Menu.Banner.imageUrl = "https://i.imgur.com/RjJe1zr.jpeg"
     elseif themeLower == "gray" then
         Menu.Colors.HeaderAccent = { r = 150, g = 150, b = 170 }
         Menu.Colors.SelectedBg   = { r = 100, g = 100, b = 120 }
         Menu.Colors.TextWhite    = { r = 240, g = 240, b = 250 }
         Menu.Colors.BackgroundDark = { r = 24, g = 24, b = 28 }
-        Menu.Banner.imageUrl = "https://i.imgur.com/WBxgLw9.png"
+        Menu.Banner.imageUrl = "https://i.imgur.com/RjJe1zr.jpeg"
     elseif themeLower == "pink" then
         Menu.Colors.HeaderAccent = { r = 255, g = 40,  b = 160 }
         Menu.Colors.SelectedBg   = { r = 200, g = 20,  b = 120 }
         Menu.Colors.TextWhite    = { r = 255, g = 240, b = 250 }
         Menu.Colors.BackgroundDark = { r = 22, g = 10, b = 18 }
-        Menu.Banner.imageUrl = "https://i.imgur.com/dWBrem7.jpeg"
+        Menu.Banner.imageUrl = "https://i.imgur.com/RjJe1zr.jpeg"
     else
         Menu.Colors.HeaderAccent = { r = 0,   g = 180, b = 255 }
         Menu.Colors.SelectedBg   = { r = 0,   g = 120, b = 220 }
         Menu.Colors.TextWhite    = { r = 255, g = 255, b = 255 }
         Menu.Colors.BackgroundDark = { r = 8, g = 14, b = 28 }
-        Menu.Banner.imageUrl = "https://i.imgur.com/dWBrem7.jpeg"
+        Menu.Banner.imageUrl = "https://i.imgur.com/RjJe1zr.jpeg"
     end
 
     if Menu.Banner.enabled and Menu.Banner.imageUrl then
