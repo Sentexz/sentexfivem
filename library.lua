@@ -46,6 +46,9 @@ Menu.TempPressedKey = nil
 Menu.ShowKeybinds = false
 Menu.CurrentTopTab = 1
 
+-- Información del anticheat (puedes cambiarla aquí)
+Menu.AnticheatInfo = "🛡️ Anticheat: EasyAntiCheat (Server-side)"
+
 -- Paleta profesional (Glass / Neon)
 Menu.Colors = {
     GlassBg     = { r = 10, g = 15, b = 30, a = 200 },
@@ -131,7 +134,9 @@ Menu.Position = {
     itemRadius = 6,
     scrollbarWidth = 6,
     scrollbarPadding = 4,
-    headerRadius = 8
+    headerRadius = 8,
+    anticheatHeight = 32,   -- altura del panel de anticheat
+    anticheatSpacing = 6    -- espacio antes del footer
 }
 Menu.Scale = 1.0
 
@@ -151,11 +156,13 @@ function Menu.GetScaledPosition()
         itemRadius = Menu.Position.itemRadius * scale,
         scrollbarWidth = Menu.Position.scrollbarWidth * scale,
         scrollbarPadding = Menu.Position.scrollbarPadding * scale,
-        headerRadius = Menu.Position.headerRadius * scale
+        headerRadius = Menu.Position.headerRadius * scale,
+        anticheatHeight = Menu.Position.anticheatHeight * scale,
+        anticheatSpacing = Menu.Position.anticheatSpacing * scale
     }
 end
 
--- Calcula la altura real del menú según el contenido
+-- Calcula la altura real del menú (incluyendo el panel anticheat)
 function Menu.GetActualHeight()
     local p = Menu.GetScaledPosition()
     local scale = Menu.Scale or 1.0
@@ -178,15 +185,58 @@ function Menu.GetActualHeight()
         local totalCats = #Menu.Categories - 1
         local visibleCats = math.min(Menu.ItemsPerPage, totalCats)
         height = height + p.mainMenuHeight + p.mainMenuSpacing + (visibleCats * p.itemHeight)
-        -- Si hay TopLevelTabs, ya están incluidos en mainMenuHeight, pero cuidado porque la variable startY se ajusta.
-        -- En realidad, la altura se calcula desde el banner hasta el footer.
-        -- Añadimos el footer al final.
     end
+    -- Añadir el panel de anticheat y su espaciado antes del footer
+    height = height + p.anticheatSpacing + p.anticheatHeight
     height = height + p.footerSpacing + p.footerHeight
     return height
 end
 
--- Funciones de dibujo (sin cambios, pero las incluyo completas)
+-- Función para dibujar el panel de anticheat (estilo glass)
+function Menu.DrawAnticheatPanel()
+    local p = Menu.GetScaledPosition()
+    local x = p.x
+    local y
+    -- Calcular Y: debajo de las categorías/ítems
+    local scale = Menu.Scale or 1.0
+    local bannerH = Menu.Banner.enabled and (Menu.Banner.height * scale) or p.headerHeight
+    local contentStartY = p.y + bannerH
+    if Menu.OpenedCategory then
+        local cat = Menu.Categories[Menu.OpenedCategory]
+        if cat and cat.hasTabs and cat.tabs then
+            local tab = cat.tabs[Menu.CurrentTab]
+            if tab and tab.items then
+                local visible = math.min(Menu.ItemsPerPage, #tab.items)
+                y = contentStartY + p.mainMenuHeight + p.mainMenuSpacing + (visible * p.itemHeight) + p.anticheatSpacing
+            else
+                y = contentStartY + p.mainMenuHeight + p.mainMenuSpacing + p.anticheatSpacing
+            end
+        else
+            y = contentStartY + p.mainMenuHeight + p.mainMenuSpacing + p.anticheatSpacing
+        end
+    else
+        local totalCats = #Menu.Categories - 1
+        local visibleCats = math.min(Menu.ItemsPerPage, totalCats)
+        y = contentStartY + p.mainMenuHeight + p.mainMenuSpacing + (visibleCats * p.itemHeight) + p.anticheatSpacing
+    end
+
+    local w = p.width - 1
+    local h = p.anticheatHeight
+    -- Fondo glass
+    Menu.DrawRoundedRect(x, y, w, h, Menu.Colors.GlassBg.r, Menu.Colors.GlassBg.g, Menu.Colors.GlassBg.b, Menu.Colors.GlassBg.a-30, 4)
+    -- Borde neón inferior y superior sutiles
+    Menu.DrawRect(x, y, w, 1, Menu.Colors.GlassBorder.r/255.0, Menu.Colors.GlassBorder.g/255.0, Menu.Colors.GlassBorder.b/255.0, 100)
+    Menu.DrawRect(x, y+h-1, w, 1, Menu.Colors.GlassBorder.r/255.0, Menu.Colors.GlassBorder.g/255.0, Menu.Colors.GlassBorder.b/255.0, 100)
+    -- Texto informativo
+    local text = Menu.AnticheatInfo
+    local fontSize = 12
+    local tw = Susano.GetTextWidth and Susano.GetTextWidth(text, fontSize) or (string.len(text)*6)
+    local tx = x + w/2 - tw/2
+    local ty = y + h/2 - fontSize/2
+    Menu.DrawText(tx, ty, text, fontSize, Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0, 200)
+end
+
+-- Funciones de dibujo (las mismas que tenías, completas)
 function Menu.DrawRect(x, y, w, h, r, g, b, a)
     a = a or 1.0
     if r > 1.0 then r = r/255.0 end
@@ -611,6 +661,8 @@ function Menu.DrawFooter()
         local vis = math.min(Menu.ItemsPerPage, #Menu.Categories-1)
         totalH = totalH + p.mainMenuHeight + p.mainMenuSpacing + (vis * p.itemHeight)
     end
+    -- Añadir el espacio del panel anticheat y su altura
+    totalH = totalH + p.anticheatSpacing + p.anticheatHeight
     local footerY = p.y + totalH + p.footerSpacing
     local w = p.width - 1
     local h = p.footerHeight
@@ -1155,6 +1207,7 @@ function Menu.Render()
         Menu.DrawBackground()
         Menu.DrawHeader()
         Menu.DrawCategories()
+        Menu.DrawAnticheatPanel()   -- <-- NUEVO: panel anticheat
         Menu.DrawFooter()
     end
     if Menu.InputOpen then Menu.DrawInputWindow() end
@@ -1250,6 +1303,7 @@ end)
 if Menu.Banner.enabled and Menu.Banner.imageUrl then Menu.LoadBannerTexture(Menu.Banner.imageUrl) end
 Menu.ApplyTheme("Glass")
 
+-- Forzar fondo negro desactivado y nieve activada, además de establecer el texto del anticheat
 CreateThread(function()
     while not Menu.Categories do Wait(100) end
     Wait(500)
@@ -1270,6 +1324,8 @@ CreateThread(function()
             end
         end
     end
+    -- Puedes personalizar el texto del anticheat aquí o desde fuera
+    Menu.AnticheatInfo = "🛡️ Anticheat: EasyAntiCheat (Server active)"
 end)
 
 return Menu
