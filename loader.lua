@@ -6782,11 +6782,7 @@ function ForceWorldLoad()
 end
 
 function DrawFreecamMenu()
-    if not freecam_active then
-        Susano.BeginFrame()
-        Susano.SubmitFrame()
-        return
-    end
+    if not freecam_active or freecam_destroyer_active then return end
 
     Susano.BeginFrame()
 
@@ -13682,7 +13678,12 @@ LoadBypasses()
 
 
 
--- Lógica TOTALMENTE INDEPENDIENTE para Destroyer
+
+
+
+-- ============================================================
+-- SISTEMA DE FREECAM TOTALMENTE AISLADO PARA DESTROYER
+-- ============================================================
 local freecam_destroyer_active = false
 local freecam_destroyer_just_started = false
 local last_click_destroyer = 0
@@ -13690,7 +13691,6 @@ local last_scroll_destroyer = 0
 local selected_destroyer_opt = 1
 local scroll_offset_destroyer = 0
 
--- Variables de cámara exclusivas para Destroyer
 local d_cam_pos = vector3(0,0,0)
 local d_cam_rot = vector3(0,0,0)
 local d_normal_speed = 0.5
@@ -13725,6 +13725,8 @@ local giantModels = {
 }
 
 function UpdateDestroyerFreecam()
+    if not freecam_destroyer_active then return end
+    
     local forward = 0.0
     local sideways = 0.0
     local vertical = 0.0
@@ -13761,6 +13763,7 @@ function UpdateDestroyerFreecam()
 end
 
 function HandleDestroyerInput()
+    if not freecam_destroyer_active then return end
     local time = GetGameTimer()
     if IsDisabledControlJustPressed(0, 241) and (time - last_scroll_destroyer) > 100 then
         selected_destroyer_opt = selected_destroyer_opt - 1
@@ -13820,12 +13823,17 @@ function DrawDestroyerFreecamMenu()
 end
 
 function ToggleFreecamDestroyer(enable, speed)
-    freecam_destroyer_active = enable
     local ped = PlayerPedId()
     if enable then
-        -- Desactivar el normal si está activo
-        if freecam_active then StopFreecam() Menu.freecamEnabled = false end
+        -- Apagar el de Jugador si está prendido
+        if freecam_active then 
+            StopFreecam() 
+            freecam_active = false
+            local item = FindItem("Jugador", "Movimiento", "Freecam")
+            if item then item.value = false end
+        end
         
+        freecam_destroyer_active = true
         local pos = GetEntityCoords(ped)
         d_cam_pos = vector3(pos.x, pos.y, pos.z)
         d_normal_speed = speed or 0.5
@@ -13838,10 +13846,14 @@ function ToggleFreecamDestroyer(enable, speed)
         freecam_destroyer_just_started = true
         Citizen.CreateThread(function() Wait(500) freecam_destroyer_just_started = false end)
     else
+        freecam_destroyer_active = false
         Susano.LockCameraPos(false)
         FreezeEntityPosition(ped, false)
         SetEntityInvincible(ped, false)
         ClearFocus()
+        -- Forzar frame limpio
+        Susano.BeginFrame()
+        Susano.SubmitFrame()
     end
 end
 
@@ -13864,7 +13876,7 @@ Citizen.CreateThread(function()
     end
 end)
 
--- Conectar el menú
+-- Conectar el menú de Destroyer
 Citizen.CreateThread(function()
     while not Menu or not Menu.Categories do Wait(100) end
     local item = FindItem("Destroyer", "General", "Freecam (Props)")
