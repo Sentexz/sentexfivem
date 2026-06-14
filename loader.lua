@@ -13770,7 +13770,7 @@ function DrawDestroyerFreecamMenu()
     local maxVis = 4
     if selected_destroyer_opt <= scroll_offset_destroyer then
         scroll_offset_destroyer = math.max(0, selected_destroyer_opt - 1)
-    elif selected_destroyer_opt > scroll_offset_destroyer + maxVis then
+    elseif selected_destroyer_opt > scroll_offset_destroyer + maxVis then
         scroll_offset_destroyer = selected_destroyer_opt - maxVis
     end
     local startY = sh - 150.0
