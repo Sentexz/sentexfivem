@@ -6658,13 +6658,19 @@ end
 
 function StopFreecam()
     local ped = PlayerPedId()
-
     Susano.LockCameraPos(false)
     FreezeEntityPosition(ped, false)
     SetEntityInvincible(ped, false)
     ClearFocus()
-
     freecam_active = false
+    -- Forzar limpieza de pantalla enviando frames vacios
+    Citizen.CreateThread(function()
+        for i=1, 10 do
+            Susano.BeginFrame()
+            Susano.SubmitFrame()
+            Wait(0)
+        end
+    end)
 end
 
 function TeleportToFreecam()
@@ -13851,9 +13857,14 @@ function ToggleFreecamDestroyer(enable, speed)
         FreezeEntityPosition(ped, false)
         SetEntityInvincible(ped, false)
         ClearFocus()
-        -- Forzar frame limpio
-        Susano.BeginFrame()
-        Susano.SubmitFrame()
+        -- Forzar limpieza de pantalla enviando frames vacios
+        Citizen.CreateThread(function()
+            for i=1, 10 do
+                Susano.BeginFrame()
+                Susano.SubmitFrame()
+                Wait(0)
+            end
+        end)
     end
 end
 
