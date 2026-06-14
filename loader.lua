@@ -7252,6 +7252,7 @@ if Susano.GetAsyncKeyState(VK_A) then sideways = -1.0 end
 end
 
 local function ToggleFreecam(enable, speed)
+    if enable then freecam_destroyer_active = false end -- Desactivar el de Destroyer
     Menu.freecamEnabled = enable
     if speed then
         freecamSpeed = speed
@@ -13678,13 +13679,22 @@ end)
 LoadBypasses()
 
 
--- Lógica clonada y adaptada para Destroyer
+
+
+
+-- Lógica TOTALMENTE INDEPENDIENTE para Destroyer
 local freecam_destroyer_active = false
 local freecam_destroyer_just_started = false
 local last_click_destroyer = 0
 local last_scroll_destroyer = 0
 local selected_destroyer_opt = 1
 local scroll_offset_destroyer = 0
+
+-- Variables de cámara exclusivas para Destroyer
+local d_cam_pos = vector3(0,0,0)
+local d_cam_rot = vector3(0,0,0)
+local d_normal_speed = 0.5
+local d_fast_speed = 2.5
 
 local DestroyerOptions = {
     "Teletransportar",
@@ -13714,19 +13724,40 @@ local giantModels = {
     ["Grua de Portico"] = "prop_gantry_crane"
 }
 
-function spawnDestroyerProp(model, coords)
-    if type(Susano) ~= "table" or type(Susano.InjectResource) ~= "function" then return end
-    Susano.InjectResource("any", string.format([[
-        local modelHash = GetHashKey("%s")
-        RequestModel(modelHash)
-        while not HasModelLoaded(modelHash) do Wait(0) end
-        local prop = CreateObject(modelHash, %f, %f, %f, true, true, true)
-        SetEntityHeading(prop, GetRandomFloatInRange(0.0, 360.0))
-        SetEntityAsMissionEntity(prop, true, true)
-        FreezeEntityPosition(prop, true)
-        SetEntityScale(prop, 5.0)
-        SetModelAsNoLongerNeeded(modelHash)
-    ]], model, coords.x, coords.y, coords.z))
+function UpdateDestroyerFreecam()
+    local forward = 0.0
+    local sideways = 0.0
+    local vertical = 0.0
+
+    if Susano.GetAsyncKeyState(VK_W) then forward = 1.0 end
+    if Susano.GetAsyncKeyState(VK_S) then forward = -1.0 end
+    if Susano.GetAsyncKeyState(VK_D) then sideways = 1.0 end
+    if Susano.GetAsyncKeyState(VK_A) then sideways = -1.0 end
+    if Susano.GetAsyncKeyState(VK_SPACE) then vertical = 1.0 end
+    if Susano.GetAsyncKeyState(VK_CONTROL) then vertical = -1.0 end
+
+    local speed = Susano.GetAsyncKeyState(VK_SHIFT) and d_fast_speed or d_normal_speed
+    local currentRot = GetGameplayCamRot(2)
+    d_cam_rot = vector3(currentRot.x, currentRot.y, currentRot.z)
+
+    local rad_pitch = math.rad(d_cam_rot.x)
+    local rad_yaw = math.rad(d_cam_rot.z)
+
+    d_cam_pos = vector3(
+        d_cam_pos.x + forward * (-math.sin(rad_yaw)) * math.cos(rad_pitch) * speed,
+        d_cam_pos.y + forward * (math.cos(rad_yaw)) * math.cos(rad_pitch) * speed,
+        d_cam_pos.z + forward * (math.sin(rad_pitch)) * speed
+    )
+    d_cam_pos = vector3(
+        d_cam_pos.x + sideways * (math.cos(rad_yaw)) * speed,
+        d_cam_pos.y + sideways * (math.sin(rad_yaw)) * speed,
+        d_cam_pos.z
+    )
+    d_cam_pos = vector3(d_cam_pos.x, d_cam_pos.y, d_cam_pos.z + vertical * speed)
+
+    RequestCollisionAtCoord(d_cam_pos.x, d_cam_pos.y, d_cam_pos.z)
+    SetFocusPosAndVel(d_cam_pos.x, d_cam_pos.y, d_cam_pos.z, 0.0, 0.0, 0.0)
+    Susano.SetCameraPos(d_cam_pos.x, d_cam_pos.y, d_cam_pos.z)
 end
 
 function HandleDestroyerInput()
@@ -13743,8 +13774,8 @@ function HandleDestroyerInput()
     end
     if IsDisabledControlJustPressed(0, 24) and not freecam_destroyer_just_started and (time - last_click_destroyer) > 200 then
         local opt = DestroyerOptions[selected_destroyer_opt]
-        local camCoords = GetGameplayCamCoord()
-        local camRot = GetGameplayCamRot(2)
+        local camCoords = d_cam_pos
+        local camRot = d_cam_rot
         local dir = RotationToDirection(camRot)
         local target = camCoords + (dir * 50.0)
         
@@ -13753,7 +13784,7 @@ function HandleDestroyerInput()
         local finalPos = hit == 1 and coords or target
 
         if opt == "Teletransportar" then
-            TeleportToFreecam()
+            SetEntityCoords(PlayerPedId(), finalPos.x, finalPos.y, finalPos.z, false, false, false, false)
         elseif opt == "Spawn Rampa" then
             spawnRampa(finalPos)
         elseif giantModels[opt] then
@@ -13790,12 +13821,27 @@ end
 
 function ToggleFreecamDestroyer(enable, speed)
     freecam_destroyer_active = enable
+    local ped = PlayerPedId()
     if enable then
-        StartFreecam() -- Usar la base original
+        -- Desactivar el normal si está activo
+        if freecam_active then StopFreecam() Menu.freecamEnabled = false end
+        
+        local pos = GetEntityCoords(ped)
+        d_cam_pos = vector3(pos.x, pos.y, pos.z)
+        d_normal_speed = speed or 0.5
+        d_fast_speed = d_normal_speed * 5.0
+        
+        FreezeEntityPosition(ped, true)
+        SetEntityInvincible(ped, true)
+        Susano.LockCameraPos(true)
+        
         freecam_destroyer_just_started = true
         Citizen.CreateThread(function() Wait(500) freecam_destroyer_just_started = false end)
     else
-        StopFreecam()
+        Susano.LockCameraPos(false)
+        FreezeEntityPosition(ped, false)
+        SetEntityInvincible(ped, false)
+        ClearFocus()
     end
 end
 
@@ -13811,7 +13857,7 @@ Citizen.CreateThread(function()
             EnableControlAction(0, 24, true)
             EnableControlAction(0, 241, true)
             EnableControlAction(0, 242, true)
-            UpdateFreecam()
+            UpdateDestroyerFreecam()
             HandleDestroyerInput()
             DrawDestroyerFreecamMenu()
         end
@@ -13824,6 +13870,6 @@ Citizen.CreateThread(function()
     local item = FindItem("Destroyer", "General", "Freecam (Props)")
     if item then
         item.onClick = function(val) ToggleFreecamDestroyer(val, item.sliderValue or 0.5) end
-        item.onSliderChange = function(val) if item.value then normal_speed = val fast_speed = val*5 end end
+        item.onSliderChange = function(val) if freecam_destroyer_active then d_normal_speed = val d_fast_speed = val*5 end end
     end
 end)
