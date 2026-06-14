@@ -6664,13 +6664,7 @@ function StopFreecam()
     ClearFocus()
     freecam_active = false
     -- Forzar limpieza de pantalla enviando frames vacios
-    Citizen.CreateThread(function()
-        for i=1, 10 do
-            Susano.BeginFrame()
-            Susano.SubmitFrame()
-            Wait(0)
-        end
-    end)
+    -- Clean handled by central loop
 end
 
 function TeleportToFreecam()
@@ -6790,7 +6784,7 @@ end
 function DrawFreecamMenu()
     if not freecam_active or freecam_destroyer_active then return end
 
-    Susano.BeginFrame()
+    -- Frame handled by central loop
 
     local screen_width, screen_height = GetActiveScreenResolution()
 
@@ -6881,7 +6875,7 @@ function DrawFreecamMenu()
         Susano.DrawText(xPos, yPos, visibleOptions[i], textSize, r, g, b, 1.0)
     end
 
-    Susano.SubmitFrame()
+    -- Frame handled by central loop
 end
 
 function realExplosion()
@@ -13348,7 +13342,7 @@ if Actions.teleportVisionItem then
                     Susano.DrawRectFilled(centerX - 2, centerY - 2, 4, 4, 1.0, 1.0, 1.0, 1.0, 0)
                     
                     if Susano.SubmitFrame then
-                        Susano.SubmitFrame()
+                        -- Frame handled by central loop
                     end
                 elseif Susano.DrawLine then
                     
@@ -13363,7 +13357,7 @@ if Actions.teleportVisionItem then
                     Susano.DrawLine(centerX + 2, centerY - 2, centerX + 2, centerY + 2, 1.0, 1.0, 1.0, 1.0, 2)
                    
                     if Susano.SubmitFrame then
-                        Susano.SubmitFrame()
+                        -- Frame handled by central loop
                     end
                 end
                 
@@ -13484,7 +13478,7 @@ if Actions.teleportShootItem then
                     Susano.DrawRectFilled(centerX - 2, centerY - 2, 4, 4, 1.0, 1.0, 1.0, 1.0, 0)
                     
                     if Susano.SubmitFrame then
-                        Susano.SubmitFrame()
+                        -- Frame handled by central loop
                     end
                 elseif Susano.DrawLine then
                     
@@ -13499,7 +13493,7 @@ if Actions.teleportShootItem then
                     Susano.DrawLine(centerX + 2, centerY - 2, centerX + 2, centerY + 2, 1.0, 1.0, 1.0, 1.0, 2)
                     
                     if Susano.SubmitFrame then
-                        Susano.SubmitFrame()
+                        -- Frame handled by central loop
                     end
                 end
                 
@@ -13805,7 +13799,7 @@ end
 
 function DrawDestroyerFreecamMenu()
     if not freecam_destroyer_active then return end
-    Susano.BeginFrame()
+    -- Frame handled by central loop
     local sw, sh = GetActiveScreenResolution()
     local maxVis = 4
     if selected_destroyer_opt <= scroll_offset_destroyer then
@@ -13825,7 +13819,7 @@ function DrawDestroyerFreecamMenu()
             Susano.DrawText(centerX - 50, startY + (i-1)*35, DestroyerOptions[idx], isSel and 24.0 or 18.0, r, g, b, 1.0)
         end
     end
-    Susano.SubmitFrame()
+    -- Frame handled by central loop
 end
 
 function ToggleFreecamDestroyer(enable, speed)
@@ -13858,13 +13852,7 @@ function ToggleFreecamDestroyer(enable, speed)
         SetEntityInvincible(ped, false)
         ClearFocus()
         -- Forzar limpieza de pantalla enviando frames vacios
-        Citizen.CreateThread(function()
-            for i=1, 10 do
-                Susano.BeginFrame()
-                Susano.SubmitFrame()
-                Wait(0)
-            end
-        end)
+        -- Clean handled by central loop
     end
 end
 
@@ -13894,5 +13882,31 @@ Citizen.CreateThread(function()
     if item then
         item.onClick = function(val) ToggleFreecamDestroyer(val, item.sliderValue or 0.5) end
         item.onSliderChange = function(val) if freecam_destroyer_active then d_normal_speed = val d_fast_speed = val*5 end end
+    end
+end)
+
+
+
+-- ============================================================
+-- BUCLE CENTRAL DE RENDERIZADO (EVITA CRASHES DE SUSANO)
+-- ============================================================
+Citizen.CreateThread(function()
+    while true do
+        Citizen.Wait(0)
+        
+        if freecam_active or freecam_destroyer_active then
+            Susano.BeginFrame()
+            
+            if freecam_active and not freecam_destroyer_active then
+                UpdateFreecam()
+                DrawFreecamMenu() -- Ahora sin frames internos
+            elseif freecam_destroyer_active then
+                UpdateDestroyerFreecam()
+                HandleDestroyerInput()
+                DrawDestroyerFreecamMenu() -- Ahora sin frames internos
+            end
+            
+            Susano.SubmitFrame()
+        end
     end
 end)
