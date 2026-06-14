@@ -147,18 +147,25 @@ local function revivirQB()
 end
 
 -- Spawnear rampa gigante (stunt block)
-local function spawnRampa()
+local function spawnRampa(customCoords)
     local ped = PlayerPedId()
-    local pos = GetEntityCoords(ped)
-    local handle = StartShapeTestRay(pos.x, pos.y, pos.z+100.0, pos.x, pos.y, pos.z-100.0, -1, ped, 0)
+    local spawnPos = customCoords
+    
+    if not spawnPos then
+        local aimCoords, _ = getAimCoords(200.0)
+        spawnPos = aimCoords or GetEntityCoords(ped)
+    end
+
+    local handle = StartShapeTestRay(spawnPos.x, spawnPos.y, spawnPos.z + 50.0, spawnPos.x, spawnPos.y, spawnPos.z - 50.0, -1, ped, 0)
     local _, hit, hitPos = GetShapeTestResult(handle)
-    local groundZ = hit and hitPos.z or pos.z
+    local groundZ = hit and hitPos.z or spawnPos.z
+
     local model = "stt_prop_stunt_bblock_huge_04"
     RequestModel(model)
     local timeout = 0
     while not HasModelLoaded(model) and timeout < 100 do Citizen.Wait(10) timeout=timeout+1 end
     if HasModelLoaded(model) then
-        local obj = CreateObject(GetHashKey(model), pos.x, pos.y, groundZ+1.0, true, true, false)
+        local obj = CreateObject(GetHashKey(model), spawnPos.x, spawnPos.y, groundZ + 1.0, true, true, false)
         if obj and obj ~= 0 then
             FreezeEntityPosition(obj, true)
             TriggerEvent('chat:addMessage', {args = {"~g~Rampa gigante spawneada"}})
@@ -1427,32 +1434,35 @@ end
 -- Estructura del menu en español (solo ASCII)
 Menu.Categories = {
     { name = "Menu Principal", icon = "P" },
+    { name = "Destroyer", icon = "💥", hasTabs = true, tabs = {
+        { name = "General", items = {
+            { name = "Freecam", type = "toggle", value = false, hasSlider = true, sliderValue = 0.5, sliderMin = 0.1, sliderMax = 5.0, sliderStep = 0.1 },
+            { name = "Spawn Rampa", type = "action", onClick = spawnRampa }
+        }}
+    }},
     { name = "Jugador", icon = "👤", hasTabs = true, tabs = {
         { name = "Personal", items = {
-            { name = "Dios", type = "toggle", value = false },
-            { name = "Semi Dios", type = "toggle", value = false },
-            { name = "Anti Cabeza", type = "toggle", value = false },
-            { name = "", isSeparator = true, separatorText = "Salud" },
-            { name = "Revivir", type = "action" },
-            { name = "Salud Maxima", type = "action" },
-            { name = "Armadura Maxima", type = "action" },
-            { name = "", isSeparator = true, separatorText = "Otros" },
-            { name = "TP todos los vehiculos a mi", type = "action" },
-            { name = "Desenganchar todas las entidades", type = "action" },
-            { name = "Sesion Solitaria", type = "toggle", value = false },
-            { name = "Lanzar vehiculo", type = "toggle", value = false },
-            { name = "Jugador pequeno", type = "toggle", value = false },
-            { name = "Resistencia infinita", type = "toggle", value = false }
+            { name = "Inmortal", type = "toggle", value = false },
+            { name = "Semi-inmortal", type = "toggle", value = false },
+            { name = "Curar", type = "action" },
+            { name = "Suicidarse", type = "action" },
+            { name = "Limpiar ped", type = "action" },
+            { name = "Invisible", type = "toggle", value = false }
         }},
         { name = "Movimiento", items = {
             { name = "", isSeparator = true, separatorText = "noclip" },
             { name = "Noclip", type = "toggle", value = false, hasSlider = true, sliderValue = 1.0, sliderMin = 1.0, sliderMax = 20.0, sliderStep = 0.5 },
             { name = "Tipo Noclip", type = "selector", options = {"normal", "staff"}, selected = 1 },
             { name = "", isSeparator = true, separatorText = "camara libre" },
-            { name = "Camara libre", type = "toggle", value = false, hasSlider = true, sliderValue = 0.5, sliderMin = 0.1, sliderMax = 5.0, sliderStep = 0.1 },
+            { name = "Freecam", type = "toggle", value = false, hasSlider = true, sliderValue = 0.5, sliderMin = 0.1, sliderMax = 5.0, sliderStep = 0.1 },
             { name = "", isSeparator = true, separatorText = "otros" },
             { name = "Correr rapido", type = "toggle", value = false },
             { name = "Sin caidas", type = "toggle", value = false }
+        }},
+        { name = "Revive", items = {
+            { name = "Revivir", type = "action" },
+            { name = "Revivir (ESX)", type = "action", onClick = revivirESX },
+            { name = "Revivir (QB/QC)", type = "action", onClick = revivirQB }
         }}
     }},
     { name = "En linea", icon = "👥", hasTabs = true, tabs = {
@@ -1463,45 +1473,10 @@ Menu.Categories = {
             { name = "", isSeparator = true, separatorText = "Apariencia" },
             { name = "Copiar apariencia", type = "action" },
             { name = "", isSeparator = true, separatorText = "Ataques" },
-            { name = "Banear jugador (prueba)", type = "toggle", value = false },
+            { name = "Banear jugador", type = "toggle", value = false },
             { name = "Disparar a jugador", type = "action" },
-            { name = "Enganchar jugador", type = "toggle", value = false, onClick = function(val)
-                local target = Menu.SelectedPlayer
-                if not target then
-                    local closestDist = 5.0
-                    local pCoords = GetEntityCoords(PlayerPedId())
-                    for _, p in ipairs(GetActivePlayers()) do
-                        if p ~= PlayerId() then
-                            local pPed = GetPlayerPed(p)
-                            local pDist = #(GetEntityCoords(pPed) - pCoords)
-                            if pDist < closestDist then
-                                closestDist = pDist
-                                target = p
-                            end
-                        end
-                    end
-                end
-
-                if target then
-                    if not attachedPlayers then attachedPlayers = {} end
-                    local targetPed = GetPlayerPed(target)
-                    if val then
-                        attachedPlayers[target] = targetPed
-                    else
-                        attachedPlayers[target] = nil
-                    end
-                end
-            end },
-            { name = "", isSeparator = true, separatorText = "Bugs" },
-            { name = "Bug al jugador", type = "selector", options = {"Bug", "Lanzar", "Lanzar fuerte", "Enganchar"}, selected = 1 },
             { name = "Enjaular jugador", type = "action" },
-            { name = "Aplastar", type = "selector", options = {"Lluvia", "Caida", "Embestir"}, selected = 1 },
-            { name = "Agujero negro", type = "toggle", value = false },
-            { name = "", isSeparator = true, separatorText = "animaciones" },
-            { name = "twerk", type = "toggle", value = false },
-            { name = "follar", type = "toggle", value = false },
-            { name = "paja", type = "toggle", value = false },
-            { name = "caballito", type = "toggle", value = false }
+            { name = "Agujero negro", type = "toggle", value = false }
         }},
         { name = "Vehiculo", items = {
             { name = "", isSeparator = true, separatorText = "Bugs" },
@@ -1588,10 +1563,6 @@ Menu.Categories = {
         }},
         { name = "Exploits", items = {
             { name = "Menu staff", type = "action" },
-            { name = "Revivir", type = "action" },
-            { name = "", isSeparator = true, separatorText = "Revive adicionales" },
-            { name = "Revivir (ESX)", type = "action", onClick = revivirESX },
-            { name = "Revivir (QB/QC)", type = "action", onClick = revivirQB }
         }}
     }},
     { name = "Ajustes", icon = "⚙", hasTabs = true, tabs = {
@@ -5853,14 +5824,14 @@ if Actions.gravitateSpeedItem then
     end
 end
 
-Actions.godmodeItem = FindItem("Jugador", "Personal", "Dios")
+Actions.godmodeItem = FindItem("Jugador", "Personal", "Inmortal")
 if Actions.godmodeItem then
     Actions.godmodeItem.onClick = function(value)
         ToggleFullGodmode(value)
     end
 end
 
-Actions.semiGodmodeItem = FindItem("Jugador", "Personal", "Semi Dios")
+Actions.semiGodmodeItem = FindItem("Jugador", "Personal", "Semi-inmortal")
 if Actions.semiGodmodeItem then
     Actions.semiGodmodeItem.onClick = function(value)
         ToggleSemiGodmode(value)
@@ -5934,7 +5905,7 @@ if Actions.tpAllVehiclesItem then
     end
 end
 
-Actions.reviveItem = FindItem("Jugador", "Personal", "Revivir")
+Actions.reviveItem = FindItem("Jugador", "Revive", "Revivir")
 if Actions.reviveItem then
     Actions.reviveItem.onClick = function()
         Menu.ActionRevive()
@@ -6640,7 +6611,7 @@ local last_click_time = 0
 local freecam_mode = 1
 local freecam_max_mode = 2
 
-local FreecamOptions = {"Teletransportar", "Disparar bala", "Disparar vehiculo", "Eliminar vehiculo", "Expulsar", "Explosion real", "Explosion silenciosa"}
+local FreecamOptions = {"Teletransportar", "Spawn Rampa", "Disparar bala", "Disparar vehiculo", "Eliminar vehiculo", "Expulsar", "Explosion real", "Explosion silenciosa"}
 local FreecamSelectedOption = 1
 local FreecamScrollOffset = 0
 
@@ -7199,6 +7170,25 @@ function HandleInput()
         local selectedOptionName = FreecamOptions[FreecamSelectedOption]
         if selectedOptionName == "Teletransportar" then
             TeleportToFreecam()
+        elseif selectedOptionName == "Spawn Rampa" then
+            local camCoords = GetGameplayCamCoord()
+            local camRot = GetGameplayCamRot(2)
+            local pitch = math.rad(camRot.x)
+            local yaw = math.rad(camRot.z)
+            local dirX = -math.sin(yaw) * math.cos(pitch)
+            local dirY = math.cos(yaw) * math.cos(pitch)
+            local dirZ = math.sin(pitch)
+            local direction = vector3(dirX, dirY, dirZ)
+            local endCoords = camCoords + (direction * 100.0)
+            
+            local ray = StartShapeTestRay(camCoords.x, camCoords.y, camCoords.z, endCoords.x, endCoords.y, endCoords.z, -1, PlayerPedId(), 0)
+            local _, hit, coords = GetShapeTestResult(ray)
+            
+            if hit == 1 then
+                spawnRampa(coords)
+            else
+                spawnRampa(endCoords)
+            end
         elseif selectedOptionName == "Disparar bala" then
             ShootBulletFromFreecam()
         elseif selectedOptionName == "Disparar vehiculo" then
@@ -7276,7 +7266,7 @@ local function ToggleFreecam(enable, speed)
     end
 end
 
-Actions.freecamItem = FindItem("Jugador", "Movimiento", "Camara libre")
+Actions.freecamItem = FindItem("Jugador", "Movimiento", "Freecam")
 if Actions.freecamItem then
     Actions.freecamItem.onClick = function(value)
         local speed = Actions.freecamItem.sliderValue or 0.5
@@ -8989,7 +8979,7 @@ if Actions.copyAppearanceItem then
     end
 end
 
-Actions.banPlayerItem = FindItem("En linea", "Troleo", "Banear jugador (prueba)")
+Actions.banPlayerItem = FindItem("En linea", "Troleo", "Banear jugador")
 if Actions.banPlayerItem then
     Actions.banPlayerItem.onClick = function(value)
         banPlayerActive = value
@@ -12474,7 +12464,7 @@ end
         end
     end
 
-    Actions.reviveItem = FindItem("Varios", "Exploits", "Revivir")
+    Actions.reviveItem = FindItem("Jugador", "Revive", "Revivir")
     if Actions.reviveItem then
         Actions.reviveItem.onClick = function()
             if Menu and Menu.OpenInput then
@@ -13257,6 +13247,8 @@ CreateThread(function()
         end
     end
 end)
+
+
 
 CreateThread(function()
     local baseWidth = 2560
