@@ -13724,8 +13724,7 @@ function spawnGiantProp(modelName, coords)
     ]], modelName, coords.x, coords.y, coords.z, coords.x, coords.y, coords.z))
 end
 
--- Modelos de props 
-gigantes para pruebas
+-- Modelos de props  gigantes para pruebas
 local giantPropModels = {
     "prop_asteroid_01", -- Asteroide
     "prop_dam_crane_01", -- Grúa de presa
