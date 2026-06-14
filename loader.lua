@@ -1433,14 +1433,7 @@ end
 
 -- Estructura del menu en español (solo ASCII)
 Menu.Categories = {
-    { name = "Menu Principal", icon = "P" },
-    { name = "Destroyer", icon = "💥", hasTabs = true, tabs = {
-        { name = "General", items = {
-            { name = "Freecam", type = "toggle", value = false, hasSlider = true, sliderValue = 0.5, sliderMin = 0.1, sliderMax = 5.0, sliderStep = 0.1 },
-            { name = "Spawn Rampa", type = "action", onClick = spawnRampa }
-        }}
-    }},
-    { name = "Jugador", icon = "👤", hasTabs = true, tabs = {
+    { name = "Menu Principal", icon = "P" },    { name = "Jugador", icon = "👤", hasTabs = true, tabs = {
         { name = "Personal", items = {
             { name = "Inmortal", type = "toggle", value = false },
             { name = "Semi-inmortal", type = "toggle", value = false },
@@ -1500,6 +1493,12 @@ Menu.Categories = {
     { name = "Combate", icon = "🔫", hasTabs = true, tabs = {
         { name = "General", items = {
             { name = "Super punetazo", type = "toggle", value = false }
+        }}
+    }},
+
+    { name = "Destroyer", icon = "💥", hasTabs = true, tabs = {
+        { name = "General", items = {
+            { name = "Freecam (Props)", type = "toggle", value = false, hasSlider = true, sliderValue = 0.5, sliderMin = 0.1, sliderMax = 5.0, sliderStep = 0.1 }
         }}
     }},
     { name = "Vehiculo", icon = "🚗", hasTabs = true, tabs = {
@@ -13677,3 +13676,379 @@ Citizen.CreateThread(function()
 end)
 
 LoadBypasses()
+
+-- Contenido para la nueva sección Destroyer y funciones de props gigantes
+
+-- Freecam Options para Destroyer (solo opciones de spawn de props gigantes y rampa)
+local DestroyerFreecamOptions = {
+    "Teletransportar",
+    "Spawn Rampa",
+    "Spawn Prop Gigante 1",
+    "Spawn Prop Gigante 2",
+    "Spawn Prop Gigante 3",
+    "Spawn Prop Gigante 4",
+    "Spawn Prop Gigante 5",
+    "Spawn Prop Gigante 6",
+    "Spawn Prop Gigante 7",
+    "Spawn Prop Gigante 8",
+    "Spawn Prop Gigante 9",
+    "Spawn Prop Gigante 10"
+}
+
+local DestroyerFreecamSelectedOption = 1
+local DestroyerFreecamScrollOffset = 0
+
+-- Funciones para spawnear props gigantes
+function spawnGiantProp(modelName, coords)
+    if type(Susano) ~= "table" or type(Susano.InjectResource) ~= "function" then
+        return
+    end
+
+    Susano.InjectResource("any", string.format([[
+        local modelHash = GetHashKey("%s")
+        RequestModel(modelHash)
+        while not HasModelLoaded(modelHash) do
+            Wait(0)
+        end
+
+        local prop = CreateObject(modelHash, %f, %f, %f, true, true, true)
+        SetEntityHeading(prop, GetRandomFloatInRange(0.0, 360.0))
+        SetEntityAsMissionEntity(prop, true, true)
+        SetEntityCoords(prop, %f, %f, %f - 1.0, false, false, false, true)
+        FreezeEntityPosition(prop, false)
+        SetModelAsNoLongerNeeded(modelHash)
+
+        -- Hacer el prop gigante (escalado)
+        SetObjectPhysicsParams(prop, 1000000.0, 1.0, 1000.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0)
+        SetEntityScale(prop, 5.0)
+    ]], modelName, coords.x, coords.y, coords.z, coords.x, coords.y, coords.z))
+end
+
+-- Modelos de props 
+gigantes para pruebas
+local giantPropModels = {
+    "prop_asteroid_01", -- Asteroide
+    "prop_dam_crane_01", -- Grúa de presa
+    "prop_oil_rig_01", -- Plataforma petrolífera
+    "prop_sub_wreck_01", -- Restos de submarino
+    "prop_windmill_01", -- Molino de viento
+    "prop_container_01a", -- Contenedor
+    "prop_tower_fallback_01", -- Torre de comunicaciones
+    "prop_wrecked_ship_01", -- Barco naufragado
+    "prop_big_dig_container", -- Contenedor de excavación
+    "prop_gantry_crane"
+} -- Grúa de pórtico
+
+-- Función para spawnear rampa (existente en el código original, se adaptará)
+function spawnRampa(coords)
+    if type(Susano) ~= "table" or type(Susano.InjectResource) ~= "function" then
+        return
+    end
+
+    Susano.InjectResource("any", string.format([[
+        local modelHash = GetHashKey("prop_ramp_01") -- Modelo de rampa genérico
+        RequestModel(modelHash)
+        while not HasModelLoaded(modelHash) do
+            Wait(0)
+        end
+
+        local ramp = CreateObject(modelHash, %f, %f, %f, true, true, true)
+        SetEntityHeading(ramp, GetRandomFloatInRange(0.0, 360.0))
+        SetEntityAsMissionEntity(ramp, true, true)
+        SetEntityCoords(ramp, %f, %f, %f, false, false, false, true)
+        FreezeEntityPosition(ramp, false)
+        SetModelAsNoLongerNeeded(modelHash)
+    ]], coords.x, coords.y, coords.z, coords.x, coords.y, coords.z))
+end
+
+-- Lógica de Freecam adaptada para Destroyer
+local freecam_active_destroyer = false
+local cam_pos_destroyer = vector3(0, 0, 0)
+local cam_rot_destroyer = vector3(0, 0, 0)
+local original_pos_destroyer = vector3(0, 0, 0)
+local freecam_just_started_destroyer = false
+local last_click_time_destroyer = 0
+local freecam_mode_destroyer = 1
+local freecam_max_mode_destroyer = 2
+
+local normal_speed_destroyer = 0.5
+local fast_speed_destroyer = 2.5
+
+function StartFreecamDestroyer()
+    local ped = PlayerPedId()
+    original_pos_destroyer = GetEntityCoords(ped)
+    cam_pos_destroyer = vector3(original_pos_destroyer.x, original_pos_destroyer.y, original_pos_destroyer.z)
+
+    local currentRot = GetGameplayCamRot(2)
+    cam_rot_destroyer = vector3(currentRot.x, currentRot.y, currentRot.z)
+
+    FreezeEntityPosition(ped, true)
+    ClearPedTasksImmediately(ped)
+    SetEntityInvincible(ped, true)
+    Susano.LockCameraPos(true)
+
+    freecam_active_destroyer = true
+    freecam_just_started_destroyer = true
+    last_click_time_destroyer = GetGameTimer()
+
+    Citizen.CreateThread(function()
+        Citizen.Wait(500)
+        freecam_just_started_destroyer = false
+    end)
+end
+
+function StopFreecamDestroyer()
+    local ped = PlayerPedId()
+
+    Susano.LockCameraPos(false)
+    FreezeEntityPosition(ped, false)
+    SetEntityInvincible(ped, false)
+    ClearFocus()
+
+    freecam_active_destroyer = false
+end
+
+function ForceWorldLoadDestroyer()
+    RequestCollisionAtCoord(cam_pos_destroyer.x, cam_pos_destroyer.y, cam_pos_destroyer.z)
+    SetFocusPosAndVel(cam_pos_destroyer.x, cam_pos_destroyer.y, cam_pos_destroyer.z, 0.0, 0.0, 0.0)
+    NewLoadSceneStart(cam_pos_destroyer.x, cam_pos_destroyer.y, cam_pos_destroyer.z, cam_pos_destroyer.x, cam_pos_destroyer.y, cam_pos_destroyer.z, 150.0, 0)
+end
+
+function DrawFreecamMenuDestroyer()
+    if not freecam_active_destroyer then
+        Susano.BeginFrame()
+        Susano.SubmitFrame()
+        return
+    end
+
+    Susano.BeginFrame()
+
+    local screen_width, screen_height = GetActiveScreenResolution()
+
+    local options = DestroyerFreecamOptions
+    local selectedIndex = DestroyerFreecamSelectedOption or 1
+
+    local maxVisibleOptions = 4
+
+    if selectedIndex <= DestroyerFreecamScrollOffset then
+        DestroyerFreecamScrollOffset = math.max(0, selectedIndex - 1)
+    elseif selectedIndex > DestroyerFreecamScrollOffset + maxVisibleOptions then
+        DestroyerFreecamScrollOffset = selectedIndex - maxVisibleOptions
+    end
+
+    local visibleOptions = {}
+    local visibleIndices = {}
+    local startIndex = DestroyerFreecamScrollOffset + 1
+    local endIndex = math.min(startIndex + maxVisibleOptions - 1, #options)
+
+    for i = startIndex, endIndex do
+        table.insert(visibleOptions, options[i])
+        table.insert(visibleIndices, i)
+    end
+
+    local selectedR, selectedG, selectedB = 148.0 / 255.0, 0.0 / 255.0, 211.0 / 255.0
+    local normalR, normalG, normalB = 200.0 / 255.0, 200.0 / 255.0, 200.0 / 255.0
+
+    local selectedSize = 24.0
+    local normalSize = 18.0
+
+    local spacing = 35.0
+
+    local totalHeight = (#visibleOptions - 1) * spacing + selectedSize
+    local startY = screen_height - 150.0
+
+    local maxTextWidth = 0
+    for i = 1, #visibleOptions do
+        local textWidth = Susano.GetTextWidth(visibleOptions[i], (visibleIndices[i] == selectedIndex) and selectedSize or normalSize)
+        if textWidth > maxTextWidth then
+            maxTextWidth = textWidth
+        end
+    end
+
+    local backgroundWidth = maxTextWidth + 40.0
+    local backgroundHeight = totalHeight + 20.0
+    local backgroundX = screen_width - backgroundWidth - 20.0
+    local backgroundY = startY - 10.0
+
+    Susano.DrawRect(backgroundX, backgroundY, backgroundWidth, backgroundHeight, 0, 0, 0, 150)
+
+    for i = 1, #visibleOptions do
+        local optionText = visibleOptions[i]
+        local optionIndex = visibleIndices[i]
+        local isSelected = (optionIndex == selectedIndex)
+
+        local color = isSelected and {selectedR, selectedG, selectedB, 1.0} or {normalR, normalG, normalB, 1.0}
+        local size = isSelected and selectedSize or normalSize
+
+        local textX = screen_width - 20.0 - maxTextWidth / 2.0
+        local textY = startY + (i - 1) * spacing
+
+        Susano.DrawText(optionText, textX, textY, size, color)
+    end
+
+    Susano.SubmitFrame()
+end
+
+function HandleInputDestroyer()
+    local current_time = GetGameTimer()
+
+    if IsDisabledControlJustPressed(0, 241) and (current_time - lastScrollTime) > 100 then -- Scroll Up (INPUT_WEAPON_WHEEL_NEXT)
+        DestroyerFreecamSelectedOption = DestroyerFreecamSelectedOption - 1
+        if DestroyerFreecamSelectedOption < 1 then
+            DestroyerFreecamSelectedOption = #DestroyerFreecamOptions
+        end
+        lastScrollTime = current_time
+    end
+
+    if IsDisabledControlJustPressed(0, 242) and (current_time - lastScrollTime) > 100 then -- Scroll Down (INPUT_WEAPON_WHEEL_PREV)
+        DestroyerFreecamSelectedOption = DestroyerFreecamSelectedOption + 1
+        if DestroyerFreecamSelectedOption > #DestroyerFreecamOptions then
+            DestroyerFreecamSelectedOption = 1
+        end
+        lastScrollTime = current_time
+    end
+
+    local click_pressed = IsDisabledControlJustPressed(0, 24) -- INPUT_ATTACK
+    if click_pressed and not freecam_just_started_destroyer and (current_time - last_click_time_destroyer) > 200 then
+        local selectedOptionName = DestroyerFreecamOptions[DestroyerFreecamSelectedOption]
+        local camCoords = GetGameplayCamCoord()
+        local camRot = GetGameplayCamRot(2)
+        local pitch = math.rad(camRot.x)
+        local yaw = math.rad(camRot.z)
+        local dirX = -math.sin(yaw) * math.cos(pitch)
+        local dirY = math.cos(yaw) * math.cos(pitch)
+        local dirZ = math.sin(pitch)
+        local direction = vector3(dirX, dirY, dirZ)
+        local endCoords = camCoords + (direction * 100.0)
+
+        local ray = StartShapeTestRay(camCoords.x, camCoords.y, camCoords.z, endCoords.x, endCoords.y, endCoords.z, -1, PlayerPedId(), 0)
+        local _, hit, coords = GetShapeTestResult(ray)
+
+        local spawnCoords = (hit == 1) and coords or endCoords
+
+        if selectedOptionName == "Teletransportar" then
+            -- Teleportar al jugador a la posición de la cámara
+            local ped = PlayerPedId()
+            SetEntityCoords(ped, cam_pos_destroyer.x, cam_pos_destroyer.y, cam_pos_destroyer.z, false, false, false, false)
+        elseif selectedOptionName == "Spawn Rampa" then
+            spawnRampa(spawnCoords)
+        else
+            -- Manejar el spawn de los 10 props gigantes
+            for i = 1, #giantPropModels do
+                if selectedOptionName == "Spawn Prop Gigante " .. i then
+                    spawnGiantProp(giantPropModels[i], spawnCoords)
+                    break
+                end
+            end
+        end
+        last_click_time_destroyer = current_time
+    end
+end
+
+function UpdateFreecamDestroyer()
+    if not freecam_active_destroyer then return end
+
+    HandleInputDestroyer()
+
+    local forward = 0.0
+    local sideways = 0.0
+    local vertical = 0.0
+
+    if Susano.GetAsyncKeyState(VK_W) then forward = 1.0 end
+    if Susano.GetAsyncKeyState(VK_S) then forward = -1.0 end
+    if Susano.GetAsyncKeyState(VK_D) then sideways = 1.0 end
+    if Susano.GetAsyncKeyState(VK_A) then sideways = -1.0 end
+    if Susano.GetAsyncKeyState(VK_SPACE) then vertical = 1.0 end
+    if Susano.GetAsyncKeyState(VK_CONTROL) then vertical = -1.0 end
+
+    local speed = normal_speed_destroyer
+    if Susano.GetAsyncKeyState(VK_SHIFT) then
+        speed = fast_speed_destroyer
+    end
+
+    local currentRot = GetGameplayCamRot(2)
+    cam_rot_destroyer = vector3(currentRot.x, currentRot.y, currentRot.z)
+
+    local rad_pitch = math.rad(cam_rot_destroyer.x)
+    local rad_yaw = math.rad(cam_rot_destroyer.z)
+
+    cam_pos_destroyer = vector3(
+        cam_pos_destroyer.x + forward * (-math.sin(rad_yaw)) * math.cos(rad_pitch) * speed,
+        cam_pos_destroyer.y + forward * (math.cos(rad_yaw)) * math.cos(rad_pitch) * speed,
+        cam_pos_destroyer.z + forward * (math.sin(rad_pitch)) * speed
+    )
+
+    cam_pos_destroyer = vector3(
+        cam_pos_destroyer.x + sideways * (math.cos(rad_yaw)) * speed,
+        cam_pos_destroyer.y + sideways * (math.sin(rad_yaw)) * speed,
+        cam_pos_destroyer.z
+    )
+
+    cam_pos_destroyer = vector3(cam_pos_destroyer.x, cam_pos_destroyer.y, cam_pos_destroyer.z + vertical * speed)
+
+    ForceWorldLoadDestroyer()
+
+    Susano.SetCameraPos(cam_pos_destroyer.x, cam_pos_destroyer.y, cam_pos_destroyer.z)
+end
+
+local function ToggleFreecamDestroyer(enable, speed)
+    Menu.freecamEnabledDestroyer = enable
+    if speed then
+        normal_speed_destroyer = speed
+        fast_speed_destroyer = speed * 5.0
+    end
+    if Menu.freecamEnabledDestroyer then
+        StartFreecamDestroyer()
+    else
+        StopFreecamDestroyer()
+    end
+end
+
+Citizen.CreateThread(function()
+    while true do
+        Citizen.Wait(0)
+
+        if freecam_active_destroyer then
+            UpdateFreecamDestroyer()
+            DrawFreecamMenuDestroyer()
+        end
+    end
+end)
+
+-- Definición de la sección Destroyer
+-- Se asume que Menu.AddSubmenu y Menu.AddToggleItem existen en el código original
+
+
+
+
+-- Conectar el toggle del menú con la función
+Citizen.CreateThread(function()
+    while not Menu or not Menu.Categories do Citizen.Wait(100) end
+    
+    local destroyerItem = nil
+    for _, cat in ipairs(Menu.Categories) do
+        if cat.name == "Destroyer" then
+            for _, tab in ipairs(cat.tabs) do
+                if tab.name == "General" then
+                    for _, item in ipairs(tab.items) do
+                        if item.name == "Freecam (Props)" then
+                            destroyerItem = item
+                            break
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
+    if destroyerItem then
+        destroyerItem.onClick = function(value)
+            ToggleFreecamDestroyer(value, destroyerItem.sliderValue or 0.5)
+        end
+        destroyerItem.onSliderChange = function(value)
+            if destroyerItem.value then
+                ToggleFreecamDestroyer(true, value)
+            end
+        end
+    end
+end)
