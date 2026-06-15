@@ -7257,17 +7257,8 @@ local function ToggleFreecam(enable, speed)
     end
     if Menu.freecamEnabled then
         StartFreecam()
-        DisableAllControlActions(0)
-        EnableControlAction(0, 1, true)
-        EnableControlAction(0, 2, true)
-        EnableControlAction(0, 14, true)
-        EnableControlAction(0, 15, true)
-        EnableControlAction(0, 24, true)
-        EnableControlAction(0, 241, true)  
-        EnableControlAction(0, 242, true)  
     else
         StopFreecam()
-        EnableAllControlActions(0)
     end
 end
 
@@ -7278,6 +7269,43 @@ if Actions.freecamItem then
         ToggleFreecam(value, speed)
     end
 
+    Actions.freecamItem.onSliderChange = function(value)
+        if Actions.freecamItem.value then
+            freecamSpeed = value
+            normal_speed = value
+            fast_speed = value * 5.0
+        end
+            end
+        end
+
+Citizen.CreateThread(function()
+    while true do
+        Citizen.Wait(0)
+
+        if freecam_active then
+            DisableAllControlActions(0)
+
+            EnableControlAction(0, 1, true)
+            EnableControlAction(0, 2, true)
+            EnableControlAction(0, 14, true)
+            EnableControlAction(0, 15, true)
+            EnableControlAction(0, 24, true)
+            EnableControlAction(0, 241, true)  
+            EnableControlAction(0, 242, true)  
+
+            UpdateFreecam()
+        end
+
+        DrawFreecamMenu()
+    end
+end)
+
+                    do
+                        Actions.shootEyesItem = FindItem("Combate", "General", "Disparar ojos")
+                        if Actions.shootEyesItem then
+                            Actions.shootEyesItem.onClick = function(value)
+                                Menu.shooteyesEnabled = value
+                            end
                         end
                     end
 
@@ -13734,20 +13762,6 @@ function UpdateDestroyerFreecam()
     Susano.SetCameraPos(d_cam_pos.x, d_cam_pos.y, d_cam_pos.z)
 end
 
-local function spawnDestroyerProp(modelName, pos)
-    local model = GetHashKey(modelName)
-    RequestModel(model)
-    local timeout = 0
-    while not HasModelLoaded(model) and timeout < 100 do Citizen.Wait(10) timeout=timeout+1 end
-    if HasModelLoaded(model) then
-        local obj = CreateObject(model, pos.x, pos.y, pos.z, true, true, false)
-        if obj and obj ~= 0 then
-            FreezeEntityPosition(obj, true)
-        end
-        SetModelAsNoLongerNeeded(model)
-    end
-end
-
 function HandleDestroyerInput()
     if not freecam_destroyer_active then return end
     local time = GetGameTimer()
@@ -13810,7 +13824,7 @@ end
 
 function ToggleFreecamDestroyer(enable, speed)
     local ped = PlayerPedId()
-        if enable then
+    if enable then
         -- Apagar el de Jugador si está prendido
         if freecam_active then 
             StopFreecam() 
@@ -13818,36 +13832,46 @@ function ToggleFreecamDestroyer(enable, speed)
             local item = FindItem("Jugador", "Movimiento", "Freecam")
             if item then item.value = false end
         end
+        
         freecam_destroyer_active = true
         local pos = GetEntityCoords(ped)
         d_cam_pos = vector3(pos.x, pos.y, pos.z)
         d_normal_speed = speed or 0.5
         d_fast_speed = d_normal_speed * 5.0
+        
         FreezeEntityPosition(ped, true)
         SetEntityInvincible(ped, true)
         Susano.LockCameraPos(true)
+        
         freecam_destroyer_just_started = true
         Citizen.CreateThread(function() Wait(500) freecam_destroyer_just_started = false end)
-        DisableAllControlActions(0)
-        EnableControlAction(0, 1, true)
-        EnableControlAction(0, 2, true)
-        EnableControlAction(0, 14, true)
-        EnableControlAction(0, 15, true)
-        EnableControlAction(0, 24, true)
-        EnableControlAction(0, 241, true)
-        EnableControlAction(0, 242, true)
     else
         freecam_destroyer_active = false
         Susano.LockCameraPos(false)
         FreezeEntityPosition(ped, false)
         SetEntityInvincible(ped, false)
         ClearFocus()
-        EnableAllControlActions(0)
         -- Forzar limpieza de pantalla enviando frames vacios
         -- Clean handled by central loop
     end
 end
 
+Citizen.CreateThread(function()
+    while true do
+        Citizen.Wait(0)
+        if freecam_active then
+            DisableAllControlActions(0)
+            EnableControlAction(0, 1, true)
+            EnableControlAction(0, 2, true)
+            EnableControlAction(0, 14, true)
+            EnableControlAction(0, 15, true)
+            EnableControlAction(0, 24, true)
+            EnableControlAction(0, 241, true)  
+            EnableControlAction(0, 242, true)  
+            UpdateFreecam()
+        end
+    end
+end)
 
 -- Conectar el menú de Destroyer
 Citizen.CreateThread(function()
@@ -13864,34 +13888,23 @@ end)
 -- ============================================================
 -- BUCLE CENTRAL DE RENDERIZADO (EVITA CRASHES DE SUSANO)
 -- ============================================================
-local last_frame_active = false
 Citizen.CreateThread(function()
     while true do
         Citizen.Wait(0)
-        local is_active = (freecam_active or freecam_destroyer_active)
         
-        if is_active then
+        if freecam_active or freecam_destroyer_active then
             Susano.BeginFrame()
+            
             if freecam_active and not freecam_destroyer_active then
                 UpdateFreecam()
-                DrawFreecamMenu()
+                DrawFreecamMenu() -- Ahora sin frames internos
             elseif freecam_destroyer_active then
                 UpdateDestroyerFreecam()
                 HandleDestroyerInput()
-                DrawDestroyerFreecamMenu()
+                DrawDestroyerFreecamMenu() -- Ahora sin frames internos
             end
-
+            
             Susano.SubmitFrame()
-            last_frame_active = true
-        elseif last_frame_active then
-            -- Forzar limpieza enviando 20 frames vacios al desactivar
-            -- Aumentar el Wait para asegurar que Susano procese los frames
-            for i=1, 20 do
-                Susano.BeginFrame()
-                Susano.SubmitFrame()
-                Citizen.Wait(100)
-            end
-            last_frame_active = false
         end
     end
 end)
