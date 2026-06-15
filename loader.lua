@@ -13858,19 +13858,17 @@ end
 
 Citizen.CreateThread(function()
     while true do
-        Wait(0)
-        if freecam_destroyer_active then
+        Citizen.Wait(0)
+        if freecam_active then
             DisableAllControlActions(0)
             EnableControlAction(0, 1, true)
             EnableControlAction(0, 2, true)
             EnableControlAction(0, 14, true)
             EnableControlAction(0, 15, true)
             EnableControlAction(0, 24, true)
-            EnableControlAction(0, 241, true)
-            EnableControlAction(0, 242, true)
-            UpdateDestroyerFreecam()
-            HandleDestroyerInput()
-            DrawDestroyerFreecamMenu()
+            EnableControlAction(0, 241, true)  
+            EnableControlAction(0, 242, true)  
+            UpdateFreecam()
         end
     end
 end)
