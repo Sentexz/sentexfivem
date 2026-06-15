@@ -13734,6 +13734,20 @@ function UpdateDestroyerFreecam()
     Susano.SetCameraPos(d_cam_pos.x, d_cam_pos.y, d_cam_pos.z)
 end
 
+local function spawnDestroyerProp(modelName, pos)
+    local model = GetHashKey(modelName)
+    RequestModel(model)
+    local timeout = 0
+    while not HasModelLoaded(model) and timeout < 100 do Citizen.Wait(10) timeout=timeout+1 end
+    if HasModelLoaded(model) then
+        local obj = CreateObject(model, pos.x, pos.y, pos.z, true, true, false)
+        if obj and obj ~= 0 then
+            FreezeEntityPosition(obj, true)
+        end
+        SetModelAsNoLongerNeeded(model)
+    end
+end
+
 function HandleDestroyerInput()
     if not freecam_destroyer_active then return end
     local time = GetGameTimer()
@@ -13870,9 +13884,9 @@ Citizen.CreateThread(function()
             Susano.SubmitFrame()
             last_frame_active = true
         elseif last_frame_active then
-            -- Forzar limpieza enviando 10 frames vacios al desactivar
+            -- Forzar limpieza enviando 20 frames vacios al desactivar
             -- Aumentar el Wait para asegurar que Susano procese los frames
-            for i=1, 10 do
+            for i=1, 20 do
                 Susano.BeginFrame()
                 Susano.SubmitFrame()
                 Citizen.Wait(100)
