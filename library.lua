@@ -47,6 +47,30 @@ Menu.TempPressedKey = nil
 Menu.ShowKeybinds = false
 Menu.CurrentTopTab = 1
 
+-- Player Info lateral
+Menu.PlayerInfoAlpha = 0.0
+Menu.PlayerInfo = nil
+Menu.PlayerInfoSnowflakes = true
+Menu.PlayerInfoParticles = {}
+for i=1, 45 do
+    table.insert(Menu.PlayerInfoParticles, {
+        x = math.random(0,1000)/1000,
+        y = math.random(0,1000)/1000,
+        speedY = math.random(12,55)/10000,
+        speedX = math.random(-10,10)/10000,
+        size = math.random(1,2)
+    })
+end
+
+Menu.PlayerInfoBanner = {
+    enabled = true,
+    imageUrl = "https://i.imgur.com/Zqt1mHg.jpeg",
+    height = 44
+}
+Menu.playerInfoBannerTexture = nil
+Menu.playerInfoBannerWidth = 0
+Menu.playerInfoBannerHeight = 0
+
 -- Panel de anticheat (opcional)
 Menu.AnticheatList = {}
 function Menu.SetAnticheatInfo(detectedList)
@@ -83,6 +107,9 @@ function Menu.ApplyTheme(themeName)
     Menu.Colors.Selected   = { r = 0,   g = 150, b = 230 }
     if Menu.Banner.enabled and Menu.Banner.imageUrl then
         Menu.LoadBannerTexture(Menu.Banner.imageUrl)
+    end
+    if Menu.PlayerInfoBanner and Menu.PlayerInfoBanner.enabled and Menu.PlayerInfoBanner.imageUrl and Menu.LoadPlayerInfoBannerTexture then
+        Menu.LoadPlayerInfoBannerTexture(Menu.PlayerInfoBanner.imageUrl)
     end
 end
 
@@ -1231,6 +1258,235 @@ function Menu.LoadBannerTexture(url)
     end)
 end
 
+
+function Menu.LoadPlayerInfoBannerTexture(url)
+    if not url or url == "" then return end
+    if not Susano or not Susano.HttpGet or not Susano.LoadTextureFromBuffer then return end
+    CreateThread(function()
+        local status, body = Susano.HttpGet(url)
+        if status == 200 and body and #body > 0 then
+            local tex, w, h = Susano.LoadTextureFromBuffer(body)
+            if tex and tex ~= 0 then
+                Menu.playerInfoBannerTexture = tex
+                Menu.playerInfoBannerWidth = w
+                Menu.playerInfoBannerHeight = h
+            end
+        end
+    end)
+end
+
+function Menu.GetCurrentSelectedItem()
+    if not Menu.Categories then return nil, nil, nil end
+    if Menu.OpenedCategory then
+        local cat = Menu.Categories[Menu.OpenedCategory]
+        if cat and cat.hasTabs and cat.tabs then
+            local tab = cat.tabs[Menu.CurrentTab]
+            if tab and tab.items then
+                return tab.items[Menu.CurrentItem], cat, tab
+            end
+        end
+    else
+        local cat = Menu.Categories[Menu.CurrentCategory]
+        return cat, cat, nil
+    end
+    return nil, nil, nil
+end
+
+function Menu.IsOnlineCategory(cat, tab)
+    local c = cat and cat.name and string.lower(tostring(cat.name)) or ""
+    local t = tab and tab.name and string.lower(tostring(tab.name)) or ""
+    return c:find("en linea", 1, true) or c:find("en línea", 1, true) or c:find("online", 1, true)
+        or t:find("en linea", 1, true) or t:find("en línea", 1, true) or t:find("online", 1, true)
+end
+
+local function _cleanPlayerMenuName(name)
+    name = tostring(name or "")
+    name = name:gsub("%[.-%]", "")
+    name = name:gsub("[»•›<>()]", "")
+    name = name:gsub("^%s+", ""):gsub("%s+$", "")
+    return name
+end
+
+function Menu.ResolvePlayerFromItem(item)
+    if not item then return nil end
+    local candidates = {
+        item.serverId, item.serverID, item.sid,
+        item.playerId, item.playerID, item.player,
+        item.id, item.value,
+        Menu.SelectedPlayer
+    }
+    if GetActivePlayers then
+        for _,v in ipairs(candidates) do
+            local n = tonumber(v)
+            if n then
+                for _,pid in ipairs(GetActivePlayers()) do
+                    local sid = GetPlayerServerId(pid)
+                    if sid == n or pid == n then return pid, sid end
+                end
+            end
+        end
+    end
+
+    local targetName = string.lower(_cleanPlayerMenuName(item.name or item.label or item.text or ""))
+    if targetName ~= "" and GetActivePlayers then
+        for _,pid in ipairs(GetActivePlayers()) do
+            local pname = GetPlayerName(pid) or ""
+            local clean = string.lower(_cleanPlayerMenuName(pname))
+            if string.lower(pname) == targetName or clean == targetName then
+                return pid, GetPlayerServerId(pid)
+            end
+        end
+        for _,pid in ipairs(GetActivePlayers()) do
+            local pname = string.lower(_cleanPlayerMenuName(GetPlayerName(pid) or ""))
+            if pname ~= "" and (targetName:find(pname, 1, true) or pname:find(targetName, 1, true)) then
+                return pid, GetPlayerServerId(pid)
+            end
+        end
+    end
+    return nil, nil
+end
+
+local function _weaponNameFromHash(hash)
+    if not hash then return "No" end
+    local known = {
+        [GetHashKey and GetHashKey("WEAPON_UNARMED") or -1569615261] = "No",
+        [GetHashKey and GetHashKey("WEAPON_PISTOL") or 453432689] = "Pistola",
+        [GetHashKey and GetHashKey("WEAPON_COMBATPISTOL") or 1593441988] = "Combat Pistol",
+        [GetHashKey and GetHashKey("WEAPON_APPISTOL") or 584646201] = "AP Pistol",
+        [GetHashKey and GetHashKey("WEAPON_SMG") or 736523883] = "SMG",
+        [GetHashKey and GetHashKey("WEAPON_MICROSMG") or 324215364] = "Micro SMG",
+        [GetHashKey and GetHashKey("WEAPON_ASSAULTRIFLE") or -1074790547] = "Assault Rifle",
+        [GetHashKey and GetHashKey("WEAPON_CARBINERIFLE") or -2084633992] = "Carbine Rifle",
+        [GetHashKey and GetHashKey("WEAPON_PUMPSHOTGUN") or 487013001] = "Pump Shotgun",
+        [GetHashKey and GetHashKey("WEAPON_STUNGUN") or 911657153] = "Taser",
+        [GetHashKey and GetHashKey("WEAPON_KNIFE") or -1716189206] = "Cuchillo",
+        [GetHashKey and GetHashKey("WEAPON_NIGHTSTICK") or 1737195953] = "Porra"
+    }
+    return known[hash] or ("0x" .. string.format("%X", tonumber(hash) or 0))
+end
+
+function Menu.UpdateHoveredPlayerInfo()
+    local item, cat, tab = Menu.GetCurrentSelectedItem()
+    if not Menu.Visible or not Menu.IsOnlineCategory(cat, tab) or not item or item.isSeparator then
+        Menu.PlayerInfo = nil
+        Menu.PlayerInfoAlpha = math.max(0, (Menu.PlayerInfoAlpha or 0) - 0.08)
+        return
+    end
+
+    local pid, sid = Menu.ResolvePlayerFromItem(item)
+    if not pid then
+        Menu.PlayerInfo = nil
+        Menu.PlayerInfoAlpha = math.max(0, (Menu.PlayerInfoAlpha or 0) - 0.08)
+        return
+    end
+
+    local ped = GetPlayerPed(pid)
+    if not ped or ped == 0 or (DoesEntityExist and not DoesEntityExist(ped)) then
+        Menu.PlayerInfo = nil
+        Menu.PlayerInfoAlpha = math.max(0, (Menu.PlayerInfoAlpha or 0) - 0.08)
+        return
+    end
+
+    local myPed = PlayerPedId and PlayerPedId() or 0
+    local distance = 0.0
+    if myPed ~= 0 and GetEntityCoords then
+        local a = GetEntityCoords(myPed)
+        local b = GetEntityCoords(ped)
+        if a and b then distance = #(a - b) end
+    end
+
+    local weaponHash = GetSelectedPedWeapon and GetSelectedPedWeapon(ped) or 0
+    local unarmed = GetHashKey and GetHashKey("WEAPON_UNARMED") or -1569615261
+    local hasWeapon = weaponHash and weaponHash ~= 0 and weaponHash ~= unarmed
+
+    Menu.PlayerInfo = {
+        name = GetPlayerName(pid) or _cleanPlayerMenuName(item.name),
+        serverId = sid or 0,
+        localId = pid,
+        distance = distance,
+        hasWeapon = hasWeapon,
+        weaponHash = weaponHash or 0,
+        weaponName = hasWeapon and _weaponNameFromHash(weaponHash) or "No"
+    }
+    Menu.PlayerInfoAlpha = math.min(1, (Menu.PlayerInfoAlpha or 0) + 0.12)
+end
+
+function Menu.DrawPlayerInfoSnow(x, y, w, h, alpha)
+    if not Menu.PlayerInfoSnowflakes or not Menu.PlayerInfoParticles then return end
+    for _, part in ipairs(Menu.PlayerInfoParticles) do
+        part.y = part.y + part.speedY
+        part.x = part.x + part.speedX
+        if part.y > 1 then part.y = 0; part.x = math.random(0,1000)/1000 end
+        if part.x < 0 then part.x = 1 elseif part.x > 1 then part.x = 0 end
+        local px = x + part.x * w
+        local py = y + part.y * h
+        Menu.DrawRect(px, py, part.size, part.size, 215,235,255, 120*alpha)
+    end
+end
+
+function Menu.DrawPlayerInfoPanel()
+    Menu.UpdateHoveredPlayerInfo()
+    local info = Menu.PlayerInfo
+    local alpha = Menu.PlayerInfoAlpha or 0
+    if not info or alpha <= 0 then return end
+
+    local p = Menu.GetScaledPosition()
+    local scale = Menu.Scale or 1.0
+    local x = p.x + p.width + 12
+    local y = p.y + p.headerHeight + 8
+    local w = 270 * scale
+    local bannerH = (Menu.PlayerInfoBanner and Menu.PlayerInfoBanner.enabled) and ((Menu.PlayerInfoBanner.height or 44) * scale) or 0
+    local gap = -1 * scale
+    local panelH = 165 * scale
+    local acR, acG, acB = Menu.Colors.Accent.r/255.0, Menu.Colors.Accent.g/255.0, Menu.Colors.Accent.b/255.0
+
+    if bannerH > 0 then
+        if Menu.playerInfoBannerTexture and Menu.playerInfoBannerTexture > 0 and Susano.DrawImage then
+            Susano.DrawImage(Menu.playerInfoBannerTexture, x, y, w, bannerH, 1, 1, 1, 1.0 * alpha, 0)
+        else
+            Menu.DrawRoundedRect(x, y, w, bannerH, 0,0,0, 210*alpha, 7)
+            Menu.DrawRect(x, y+bannerH-1, w, 1, acR, acG, acB, 170*alpha)
+            local title = "PLAYER INFO"
+            local fs = 18
+            local tw = Susano.GetTextWidth and Susano.GetTextWidth(title, fs) or (string.len(title)*9)
+            Menu.DrawText(x+w/2-tw/2, y+bannerH/2-fs/2, title, fs, acR, acG, acB, 255*alpha)
+        end
+    end
+
+    local panelY = y + bannerH + gap
+    -- Fondo negro semi-transparente, igual que el menú pero más legible.
+    Menu.DrawRoundedRect(x, panelY, w, panelH, 0,0,0, 212*alpha, 8)
+    Menu.DrawRoundedRect(x+2, panelY+2, w-4, panelH-4, 0,0,0, 140*alpha, 7)
+    Menu.DrawRect(x, panelY, w, 1, acR, acG, acB, 180*alpha)
+    Menu.DrawRect(x, panelY+panelH-1, w, 1, acR, acG, acB, 80*alpha)
+    Menu.DrawPlayerInfoSnow(x+3, panelY+3, w-6, panelH-6, alpha)
+
+    local name = tostring(info.name or "Desconocido")
+    if #name > 24 then name = string.sub(name, 1, 21) .. "..." end
+    Menu.DrawText(x+16, panelY+13, name, 20, 1,1,1, 255*alpha)
+    Menu.DrawRect(x+16, panelY+39, w-32, 1, acR, acG, acB, 95*alpha)
+
+    local labelSize = 14
+    local valueSize = 15
+    local lineY = panelY + 52
+    local function row(label, value, vr, vg, vb)
+        Menu.DrawText(x+16, lineY, label, labelSize, Menu.Colors.TextDim.r/255.0, Menu.Colors.TextDim.g/255.0, Menu.Colors.TextDim.b/255.0, 245*alpha)
+        local val = tostring(value or "-")
+        local tw = Susano.GetTextWidth and Susano.GetTextWidth(val, valueSize) or (string.len(val)*8)
+        Menu.DrawText(x+w-tw-16, lineY-1, val, valueSize, vr or 1, vg or 1, vb or 1, 255*alpha)
+        lineY = lineY + 25 * scale
+    end
+
+    row("ID servidor", info.serverId)
+    row("ID local", info.localId)
+    row("Distancia", string.format("%.1fm", info.distance or 0))
+    if info.hasWeapon then
+        row("Arma", info.weaponName or "Si", 1.0, 0.86, 0.35)
+    else
+        row("Arma", "No", 0.65, 1.0, 0.72)
+    end
+end
+
 function Menu.Render()
     if Menu.TopLevelTabs and not Menu.Categories then Menu.UpdateCategoriesFromTopTab() end
     if not Susano.BeginFrame then return end
@@ -1260,6 +1516,7 @@ function Menu.Render()
         Menu.DrawHeader()
         Menu.DrawCategories()
         Menu.DrawFooter()
+        Menu.DrawPlayerInfoPanel()
         Menu.DrawAnticheatPanel()
     end
     if Menu.InputOpen then Menu.DrawInputWindow() end
@@ -1353,6 +1610,7 @@ CreateThread(function()
 end)
 
 if Menu.Banner.enabled and Menu.Banner.imageUrl then Menu.LoadBannerTexture(Menu.Banner.imageUrl) end
+if Menu.PlayerInfoBanner and Menu.PlayerInfoBanner.enabled and Menu.PlayerInfoBanner.imageUrl then Menu.LoadPlayerInfoBannerTexture(Menu.PlayerInfoBanner.imageUrl) end
 Menu.ApplyTheme("BlackGlass")
 
 -- Valores por defecto (fondo negro ya está, nieve activada)
