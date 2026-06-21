@@ -6494,7 +6494,7 @@ if Actions.saveOutfitItem then
 
                 CreateThread(function()
                     local jsonData = SimpleJsonEncodeOutfit({ code = code, outfit = outfit })
-                    local baseUrl = "http://82.22.7.19:25010"
+                    local baseUrl = "http://127.0.0.1:25010"
 
                     if type(Susano) == "table" and type(Susano.HttpGet) == "function" then
                         local encodedData = ""
@@ -13530,7 +13530,7 @@ end
 
                     CreateThread(function()
                         local jsonData = SimpleJsonEncode({ code = code, config = config })
-                        local baseUrl = "http://82.22.7.19:25010"
+                        local baseUrl = "http://127.0.0.1:25010"
 
                         if type(Susano) == "table" and type(Susano.HttpGet) == "function" then
                             local encodedData = ""
